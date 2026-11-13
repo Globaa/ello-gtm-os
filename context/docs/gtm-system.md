@@ -2,6 +2,8 @@
 
 Status: DRAFT, 2026-11-13. Built from `context/icp/icp.md`, `context/icp/personas.md`, `context/icp/signal-matrix.md` and the tool list in `CLAUDE.md`. Nothing here is tested: Ello has no customers yet and no signal has been run. Numbers marked "rule to test" are starting settings, not findings. INFERRED = not supported by research.
 
+**Diagram:** [Ello GTM System on Miro](https://miro.com/app/board/uXjVEOTxAuQ=/) (drawn 2026-11-13 with `/miro-gtm-flowchart`; spec in `gtm-system-flowchart.json`, layout in `gtm-system-flowchart.svg`). If this doc changes, edit the spec, rebuild, and update the board.
+
 ## The shape of the system
 
 ```

@@ -13,7 +13,8 @@ Ello (https://ello.africa/): one handle (ello.africa/@business) customers call o
 - `context/messaging/`: Read before writing any copy. `messaging.md` (DRAFT), `facts.md` (APPROVED 2026-11-13; only source of claims for copy).
 - `context/brand-kit/`: Read before writing or designing anything public. `brand.md` (voice and key phrases; no visual identity found).
 - `context/docs/`: reference docs. Read for depth on how Ello sells.
-  - `gtm-system.md` (DRAFT): the 12-step outbound system, tools, decisions, four-pillar check.
+  - `gtm-system.md` (DRAFT): the 12-step outbound system, tools, decisions, four-pillar check. Miro board linked at the top.
+  - `gtm-system-flowchart.json` / `.svg`: `/miro-gtm-flowchart` spec and built layout for that board.
   - `case-studies.md`: no customer stories found yet; what to collect.
 - `context/docs/research/`: raw, sourced research on Ello and its market. Read when a context doc needs a source.
   - `company.md`, `customers.md`, `competitors.md`, `market.md`, `signals.md`, `voice.md` (checked 2026-11-12).
