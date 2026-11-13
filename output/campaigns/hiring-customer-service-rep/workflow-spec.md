@@ -1,8 +1,8 @@
 # Workflow B: Lagos businesses hiring a customer service or order-taking rep
 
-**Status:** IN PROGRESS · Sections 1-4 approved 2026-11-13 · Sections 5-7 (routing matrix with angles, variables contract, cadence and channel) pending · NOT STRUCTURE-APPROVED · copy blocked
+**Status:** STRUCTURE-APPROVED 2026-11-13 · E1 approved 2026-11-13 · E2/E3 pending
 
-Built with `/build-workflow-spec` from `context/icp/icp.md`, `context/icp/personas.md`, `context/icp/signal-matrix.md` (signal U1) and `context/docs/gtm-system.md`. `context/messaging/facts.md` does not exist yet: every specific fact stays a `{{placeholder}}`. No copy in this file.
+Built with `/build-workflow-spec` from `context/icp/icp.md`, `context/icp/personas.md`, `context/icp/signal-matrix.md` (signal U1) and `context/docs/gtm-system.md`. Facts for copy come only from `context/messaging/facts.md` (approved 2026-11-13).
 
 ## 1. Mother Intent (Trigger) [ENGINE]
 **A Lagos business posted a job in the last 30 days for someone to answer customers: customer service, customer care, order-taking, sales rep or front desk.**
@@ -64,10 +64,91 @@ Deliberately excluded reads:
 Routing axes for Section 5: Segment (3) x Role channel (4) = 12 cells. Approved by Fredrick 2026-11-13.
 
 ## 5. Routing matrix with angles [ENGINE]
-PENDING. Next gate: build axis by axis, stop for approval.
+Approved by Fredrick 2026-11-13. Segment (3) x role channel (4) = 12 cells, exhaustive (every lead that passes Section 2 lands in one cell), so no fallback cell. Recipient in every cell: the owner. Spine: the hire answers customers in working hours; Ello's link and agent answer when nobody can, alongside the hire, never instead of them. Inference stops at what they are doing ("adding someone to answer customers"), never that they are losing customers.
+
+| Cell | Deterministic read | What it tells us (inferred situation) | The angle it earns |
+|---|---|---|---|
+| S1 x chat | `s1_retail` + channel `chat` | A seller who takes questions and orders by message is adding `{{role_title}}` to answer DMs | The hire answers DMs in their shift; an Ello link in the bio answers price and stock questions and takes the order when they're off, then hands over |
+| S1 x calls | `s1_retail` + `calls` | A seller whose customers phone to ask or order is adding someone to pick up | Customers call the business handle from the browser instead of a personal number; the agent picks up when the hire is on another call |
+| S1 x both | `s1_retail` + `both` | The role covers phone and DMs, so customer conversations sit across a phone and apps | One link for calls and chats, so the hire works from one place and the agent covers the gaps |
+| S1 x not_stated | `s1_retail` + `not_stated` | A seller is adding `{{role_title}}`; how customers reach them is unknown | One link in the bio to call or chat; the agent answers when the team can't |
+| S2 x chat | `s2_food` + `chat` | A food business taking orders by message is adding someone to handle them | In the rush, the agent takes routine chat orders from the menu and opening hours; the hire handles what needs a person |
+| S2 x calls | `s2_food` + `calls` | A food business taking phone orders is adding someone to answer the line | "Take orders without taking every call": customers order by call or chat from one link; the agent answers the overflow |
+| S2 x both | `s2_food` + `both` | Orders come by phone and message, and the role covers both | Phone and chat orders arrive in one place; the agent takes the routine ones at peak |
+| S2 x not_stated | `s2_food` + `not_stated` | A food business is adding `{{role_title}}`; channel unknown | One link for orders by call or chat; the agent answers when the team is busy |
+| S3 x chat | `s3_salon` + `chat` | A salon getting booking questions by DM is adding someone to answer them | "Turn "Are you available?" into a booking": the agent answers availability by chat and books; the hire handles the rest |
+| S3 x calls | `s3_salon` + `calls` | A salon booking by phone is adding a receptionist or front desk role | Clients call the salon handle from the browser; the agent books when the front desk is with a client |
+| S3 x both | `s3_salon` + `both` | Bookings come by phone and DM | One link for booking calls and chats; the hire sees the customer history in one place |
+| S3 x not_stated | `s3_salon` + `not_stated` | A salon is adding `{{role_title}}`; channel unknown | One link where clients call or chat to book; the agent answers between appointments |
+
+Branch coverage: `{{role_title}}` and `{{business_name}}` exist in every cell. Context clauses (signals 5, 6) may add one line when true; they never pick the cell.
 
 ## 6. Variables contract [ENGINE]
-PENDING.
+Approved 2026-11-13.
+
+| Variable | Source field | Exists in branches |
+|---|---|---|
+| `{{first_name}}` | Owner first name (Instagram bio, Maps owner reply, CAC record); if not found, resolves to "{{business_name}} team" in Clay | All |
+| `{{business_name}}` | Employer name from the job post, cleaned (no "Ltd", no location suffix) | All |
+| `{{role_title}}` | Job title as posted, cleaned by AI column to a short lowercase plain role ("order taker", "customer service rep", "receptionist"); no gender, salary or location. Copy uses it after "a new" (changed 2026-11-13 after the E1 human test) | All |
+| `{{area}}` | Lagos area from the job location or Maps address | Only when present; copy must not depend on it |
+| `{{dm_to_order}}` | Signal 5 boolean | Context clause only |
+| `{{meta_ad}}` | Signal 6 boolean | Context clause only |
+| `{{e1l1}}`, `{{e1l2}}`, `{{e2l1}}`, ... | Dynamic lines resolved per lead from segment and role channel | All |
 
 ## 7. Cadence & channel [ENGINE]
+Approved 2026-11-13: **email only for now.** LinkedIn added later once the share of owners with a LinkedIn profile is known.
+- Periodicity: always-on; new job posts pulled weekly (posts ≤ 30 days old).
+- Dedupe: one sequence per business per 90 days (HubSpot `account_key`).
+- Sequence: Email 1 day 0 (new thread); Email 2 day 3 (same thread); Email 3 day 8 (same thread).
+- No email found: manual DM/WhatsApp queue (open decision, gtm-system.md).
+
+---
+
+## Copy (email only)
+Written with `/campaign-copy` from Sections 5-6 and `context/messaging/facts.md` only. Sender: Fredrick, Ello.
+
+### Email 1 (day 0, new thread) · APPROVED 2026-11-13
+Approved after a persona review and human test.
+
+**Subject:** `{your new hire|the new hire|about your new hire}`
+
+```
+{{first_name}},
+
+{{e1l1}}
+
+{{e1l2}}
+
+Ello gives you a handle: one link customers tap to {call or chat with you|call you or chat}, with no app to download.
+
+When your new hire is {busy|tied up} or off for the day, they turn on our AI agent, and it answers routine questions from your catalogue and opening hours.
+
+Want me to set up a handle so you can see it?
+
+Fredrick
+Ello
+```
+
+**`{{e1l1}}`: by segment (exhaustive, no fallback)**
+| Segment | Line |
+|---|---|
+| `s1_retail` | You're hiring a new {{role_title}}, so my guess is more customers are asking about prices and stock. |
+| `s2_food` | You're looking for a new {{role_title}}, so I'd guess orders are picking up. |
+| `s3_salon` | With a new {{role_title}} on the way, more clients are probably asking to book. |
+
+**`{{e1l2}}`: by role channel (exhaustive, no fallback)**
+| Channel | Line |
+|---|---|
+| `chat` | The post says the job is mostly DMs and WhatsApp, and I imagine those keep coming after the shift ends. |
+| `calls` | From the sound of the post it's mostly phone calls, and calls rarely come one at a time. |
+| `both` | The post has them on calls and DMs, which is a lot of places to watch at once. |
+| `not_stated` | Whoever you hire will cover their shift, but customers don't keep office hours. |
+
+Facts used: "No app download for customers", "Turn the agent on when you need help", "uses your catalogue and opening hours", approved CTA. ~88 words.
+
+### Email 2 (day 3, same thread)
+PENDING.
+
+### Email 3 (day 8, same thread)
 PENDING.

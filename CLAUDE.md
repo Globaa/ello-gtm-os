@@ -9,11 +9,12 @@ Ello (https://ello.africa/): one handle (ello.africa/@business) customers call o
   - `icp.md` (DRAFT): five-layer ICP, not-a-fit list, open questions.
   - `personas.md` (DRAFT): owner (economic buyer), customer-facing staff (champion), social/ads runner (influencer, hypothesis).
   - `signal-matrix.md` (DRAFT): segments x personas with angles, scored signals, top five to build, workflow tracker.
-- `context/positioning/`: value proposition, positioning, competitors. Read before writing any pitch or comparison.
-- `context/messaging/`: messaging framework and approved facts. Read before writing any copy.
-- `context/brand-kit/`: voice, tone, visual rules. Read before writing or designing anything public.
-- `context/docs/`: reference docs (case studies, GTM system). Read for depth on how Ello sells.
+- `context/positioning/`: Read before writing any pitch or comparison. `value-proposition.md`, `positioning.md`, `competitors.md` (DRAFT).
+- `context/messaging/`: Read before writing any copy. `messaging.md` (DRAFT), `facts.md` (APPROVED 2026-11-13; only source of claims for copy).
+- `context/brand-kit/`: Read before writing or designing anything public. `brand.md` (voice and key phrases; no visual identity found).
+- `context/docs/`: reference docs. Read for depth on how Ello sells.
   - `gtm-system.md` (DRAFT): the 12-step outbound system, tools, decisions, four-pillar check.
+  - `case-studies.md`: no customer stories found yet; what to collect.
 - `context/docs/research/`: raw, sourced research on Ello and its market. Read when a context doc needs a source.
   - `company.md`, `customers.md`, `competitors.md`, `market.md`, `signals.md`, `voice.md` (checked 2026-11-12).
 - `knowledge-base/playbooks/`: repeatable how-tos and templates (imported). Read before running a workflow.
@@ -22,7 +23,8 @@ Ello (https://ello.africa/): one handle (ello.africa/@business) customers call o
 - `knowledge-base/learnings/`: what worked and what did not. Read before planning a new campaign. (empty)
 - `meetings/`: meeting notes and transcripts. Read when a decision or request needs its origin. (empty)
 - `output/campaigns/`: campaign specs, assets and copy. Write here; read to reuse past work.
-  - `hiring-customer-service-rep/workflow-spec.md` (IN PROGRESS): Workflow B, sections 1-4 approved.
+  - `campaign-strategy.md` (DRAFT): 20 ranked campaign ideas with mother intent, tier, volume band, difficulty.
+  - `hiring-customer-service-rep/workflow-spec.md` (STRUCTURE-APPROVED): Workflow B, email only; copy in progress.
 - `tools/`: scripts and tool configs (imported). Read when a task needs automation.
   - `rex/` (Clay client + `claylens/` Chrome extension, 42 files), `crawl4ai/README.md`, `agent-browser/README.md`
 - `weekly-priorities/`: one file per ISO week (YYYY-Www.md). Read at the start of every session. Now: `2026-W46.md`.
