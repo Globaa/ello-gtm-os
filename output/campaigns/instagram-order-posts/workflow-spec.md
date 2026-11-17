@@ -1,6 +1,8 @@
 # Workflow C: Lagos sellers and food businesses taking orders by message on Instagram
 
-**Status:** COPY-APPROVED 2026-11-17 (structure, angle fix, E1, E2, E3 and DM all 2026-11-17) · Clay-readiness fixes applied 2026-11-17 (approved by Fredrick)
+**Status:** COPY-APPROVED 2026-11-17 (structure, angle fix, E1, E2, E3 and DM all 2026-11-17) · Clay-readiness fixes applied 2026-11-17 · Clay build-guide fixes applied 2026-11-17 (both approved by Fredrick)
+
+Clay build guide: `clay-build/instagram-order-posts-clay-build-guide.md` (from `/clay-build-plan`, 2026-11-17).
 
 **Clay-readiness fixes (2026-11-17):** a pre-build check found 14 issues (3 blockers: Stage 1 not built, Workflows B and C couldn't suppress each other in HubSpot, manual DMs not logged). Fixes below change sources, gates, reads and the variables contract only. Mother intent, cells, angles and copy are unchanged.
 
@@ -18,8 +20,8 @@ Built with `/build-workflow-spec` from campaign ideas #1 (DM-to-order sellers) a
 |---|---|---|
 | Geography | Found on a Lagos hashtag (below) AND bio or post location matches (case-insensitive) `lagos\|lekki\|ikeja\|yaba\|surulere\|ajah\|ikoyi\|victoria island\|\bvi\b\|festac\|gbagada\|ikorodu\|magodo\|ogba\|maryland\|oshodi\|egbeda\|ojodu\|ilupeju\|isolo\|apapa\|sangotedo\|chevron`. Rule to test on the first pull: non-Lagos sellers use Lagos hashtags too; add missed areas to this list | icp.md (Lagos first, hypothesis) |
 | Segment | Classified as S1 retail and social commerce or S2 food and takeout. S3 salons and everything else are out of this workflow | signal-matrix.md N1, N2 |
-| Size | Under 50k Instagram followers (rule to test, same threshold as Workflow B). Followers are the only size proxy; headcount isn't visible | icp.md (1 to 5 people), gtm-system.md step 5 |
-| Account | Business or creator account (if the profile data returns that flag) passes. Otherwise the Use AI column's `is_seller` field decides from the bio: `yes` passes, `no` is out, `unclear` goes to review | INFERRED: Ello sells to businesses [co] |
+| Size | Under 50k Instagram followers (rule to test, same threshold as Workflow B). Followers are the only size proxy; headcount isn't visible. A **blank** follower count fails (the rule can't be checked) and goes to the `Dropped` view, so missing profiles in Stage 1 are visible | icp.md (1 to 5 people), gtm-system.md step 5 |
+| Account | Business or creator account (if the profile data returns that flag) passes. Otherwise the Use AI column's `is_seller` field decides from the bio: `yes` passes, `no` is out, `unclear` goes to review. Whether treg's profile call returns the flag (`is_business`) is unconfirmed: check it in the Stage 1 test and record the result here. If it doesn't, every account relies on `is_seller` | INFERRED: Ello sells to businesses [co] |
 | Registration | CAC-registered. v1: review step, not a hard filter (same as Workflow B). Matching an Instagram name to CAC is fuzzier than matching a job-post employer | icp.md, signal-matrix.md N4 |
 | Trigger | A post in the last 14 days on a listed hashtag whose caption matches the keyword list **for the hashtag set it was found on** (S1 hashtags use S1 keywords, S2 hashtags use S2 keywords; table below). The AI segment (Section 4) only routes; it never picks the keyword list | signal-matrix.md N1, N2 |
 | Recipient | The owner (economic buyer); if no owner name is found, "{{business_name}} team" | personas.md |
@@ -56,7 +58,7 @@ Two stages, as in Workflow B: Clay can't call treg. **Stage 1** runs outside Cla
 | Segment, item, order day, owner first name | Caption + bio + Instagram category (+ Maps category) | Stage 2: one Clay Use AI column, JSON output with enums | About 1 Action per row plus AI cost |
 | HubSpot suppression | HubSpot company by `instagram_handle`, then by `maps_place_id` (shared properties, Section 6) | Stage 2: Clay HubSpot lookups | Check the Actions counter on 1 row |
 | Registration review | CAC public search | Stage 2: Claygent, or by hand (v1 review step) | More per row than Use AI |
-| Email | (a) public email on the Instagram profile (Stage 1); (b) Claygent on the bio link or Maps website, only when (a) is empty AND the link is not `wa.me`, `api.whatsapp.com` or `instagram.com` (those pages never hold an email). Then Clay email validation | Stage 1 + Stage 2 | About 1 Action per paid step that runs |
+| Email | (a) public email on the Instagram profile (Stage 1); (b) Claygent on the **bio link first, then the Maps website** (the first one that qualifies), only when (a) is empty AND the link is not `wa.me`, `api.whatsapp.com` or `instagram.com` (those pages never hold an email). Then Clay email validation | Stage 1 + Stage 2 | About 1 Action per paid step that runs |
 | DM sent log | The person sending ticks `dm_sent` and fills `dm_sent_date` in Clay | Stage 2: manual columns, then a Clay HubSpot "create or update company + log activity" step on ticked rows | Check the Actions counter on 1 row |
 
 **One row per account:** Stage 2 sends matching posts into a `Sellers` table keyed on the Instagram handle. When an account has more than one matching post in 14 days, the **newest** post sets `item`, `order_day` and where orders go; older posts are kept in the posts table for reference only.
@@ -67,7 +69,9 @@ Two stages, as in Workflow B: Clay can't call treg. **Stage 1** runs outside Cla
 
 **Two tests before scaling (rules to test, no numbers yet):**
 - **Volume:** one hashtag pull per segment; count matching posts and unique accounts per 14 days. Replaces the strategy's "High" and "Medium" bands. Also check that `anyapi.instagram.hashtag.posts` returns **recent** posts (not only "top" posts) and how many posts one call returns; if it needs paging, record the real cost per 14 days.
-- **Email coverage:** among accounts that pass every gate, how many get a valid email. Decides how much of the send goes by DM (Section 7).
+- **Email coverage:** among accounts that pass every gate, how many get a valid email. Decides how much of the send goes by DM (Section 7). Run it on **every matching post from the last 14 days on all 7 hashtags**, not on the 25-post build test, which gives too few sellers.
+
+**Build test:** 25 posts, to prove every Clay column works. Separate from the coverage test above.
 
 ## 4. Signals table [ENGINE]
 | # | Signal | Role | How it's read | Clay data source | Output |
@@ -139,7 +143,7 @@ Approved 2026-11-17.
 | `is_seller` | Internal. Use AI field (`yes` / `no` / `unclear`) for accounts without a business or creator flag (Section 2) | Accounts without the flag |
 | `{{e1l1}}`, `{{e1l2}}`, `{{e2l1}}`, `{{e3l1}}` | Email lines (Copy section), formulas picked by segment, where orders go, the context fields and the personal-number boolean | Email branch |
 | `{{dm_l1}}`, `{{dm_q}}` | DM lines (Copy section), formulas picked by segment + context fields (`dm_l1`) and where orders go (`dm_q`) | DM branch |
-| `dm_text` | Internal formula: the full DM, "Hi {{first_name}}, " + `dm_l1` with its first letter lowercased + the fixed line + `dm_q`, ready to paste | DM branch |
+| `dm_text` | Internal formula: the full DM, "Hi {{first_name}}, " + `dm_l1` with its first letter lowercased **unless the line starts with "I" (as in "I'm")** + the fixed line + `dm_q`, ready to paste | DM branch |
 | `dm_sent`, `dm_sent_date` | Internal manual columns ticked by the person who sends the DM; trigger the HubSpot log (Section 3) | DM branch |
 
 **Deliberately excluded:** follower count (filter only; quoting it reads as surveillance), the phone number itself (sensitive; only the boolean is needed), caption text (copy gets `{{item}}` and `{{order_day}}`, never a quote of their post), area (not reliable on Instagram).
@@ -150,7 +154,7 @@ Approved 2026-11-17: **email where a valid email exists; otherwise one manual In
 - Dedupe: one sequence per business per 90 days across all Ello workflows (HubSpot on Instagram handle and Maps place ID). A business in Workflow B never also gets Workflow C.
 - **Email branch:** Email 1 day 0 (new thread); Email 2 day 3 (same thread); Email 3 day 8 (same thread). Sequencer waits: 3 days, then 5 days.
 - **DM branch (no email, or validation not `valid`):** 1 short Instagram DM, sent by hand from an Ello Instagram account, never automated. Same cell routing and context clauses as the email; written by `/campaign-copy` in DM register (reads like a text, no subject, no signature). Never sent to an account that is in the email branch.
-- **Logging (both branches):** every business contacted is written to HubSpot with `instagram_handle` and `maps_place_id`. Email: at the sequencer push. DM: the sender ticks `dm_sent` and fills `dm_sent_date`; a Clay HubSpot step logs the activity on ticked rows. Unlogged contacts break the 90-day rule.
+- **Logging (both branches):** every business contacted is written to HubSpot with `instagram_handle` and `maps_place_id`. One Clay HubSpot "create or update company + log activity" step does both branches: for email, on rows the sequencer push column has run on; for DM, on rows where the sender ticked `dm_sent` and filled `dm_sent_date`. Unlogged contacts break the 90-day rule.
 - Open before launch: sequencer (not chosen); the Ello Instagram account that sends DMs (NEEDS INPUT); a daily cap on manual DMs (NEEDS INPUT; keep low volume).
 
 ---
@@ -260,7 +264,7 @@ Ello
 The privacy clause is folded into `e3l1` (not a separate line) so no blank line appears when the signal is false. Facts used: "Most businesses are set up in one sitting.", "without your personal phone number ever being exposed", link placements (Instagram bio, Google profile, ads, QR code, business card). ~40 words.
 
 ### Instagram DM (manual, accounts with no valid email) · APPROVED 2026-11-17
-One DM, sent by hand from the Ello Instagram account; never to an account in the email branch. No spintax (pasted by hand): the full message is assembled per account in one Clay column, with the first letter of `dm_l1` lowercased after "Hi {{first_name}}, ".
+One DM, sent by hand from the Ello Instagram account; never to an account in the email branch. No spintax (pasted by hand): the full message is assembled per account in one Clay column, with the first letter of `dm_l1` lowercased after "Hi {{first_name}}, ", unless the line starts with "I" ("I'm messaging…", "I'm writing…" keep the capital).
 
 ```
 Hi {{first_name}}, {{dm_l1}}

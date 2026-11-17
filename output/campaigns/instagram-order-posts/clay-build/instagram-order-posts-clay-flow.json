@@ -1,0 +1,30 @@
+{
+  "title": "How the Instagram orders workflow moves through Clay",
+  "subtitle": "Each row is a table. Follow the numbers left to right. Paid steps only run on rows that passed every step before them.",
+  "lanes": [
+    {"id": "stage1", "name": "Stage 1 export", "note": "built outside Clay\n(treg via n8n)", "dashed": true},
+    {"id": "posts", "name": "Posts", "note": "one row per\nmatching post"},
+    {"id": "sellers", "name": "Sellers", "note": "one row per Instagram\nhandle. The main table.", "main": true}
+  ],
+  "steps": [
+    {"id": "x", "n": "0", "lane": "stage1", "col": 1, "title": "Weekly posts CSV", "text": "Hashtag posts with profile and Maps facts", "cost": null},
+    {"id": "s1", "n": "1", "lane": "posts", "col": 2, "title": "Import posts", "text": "Upload the CSV. Start with 25 rows", "cost": "free"},
+    {"id": "s2", "n": "2", "lane": "posts", "col": 3, "title": "Free post checks", "text": "Right keywords, 14 days, Lagos, no competitors. DM or WhatsApp?", "cost": "free"},
+    {"id": "s3", "n": "3", "lane": "sellers", "col": 4, "title": "Send each seller once", "text": "Deduped on handle, newest post wins", "cost": "free"},
+    {"id": "s4", "n": "4", "lane": "sellers", "col": 5, "title": "Seller gates", "text": "Under 50k followers, not in HubSpot (handle, then place ID)", "cost": "paid"},
+    {"id": "s5", "n": "5", "lane": "sellers", "col": 6, "title": "Read and CAC (AI)", "text": "Retail or food? A real seller? Item, order day. CAC check", "cost": "paid"},
+    {"id": "s6", "n": "6", "lane": "sellers", "col": 7, "title": "Route to a cell", "text": "Type x where orders go = 8 cells. Unclear goes to review", "cost": "free", "highlight": true},
+    {"id": "s7", "n": "7", "lane": "sellers", "col": 8, "title": "Email or DM?", "text": "Profile email, then website (AI). Validate. No valid email = DM", "cost": "paid"},
+    {"id": "s8", "n": "8", "lane": "sellers", "col": 9, "title": "Copy, send, log", "text": "Approved lines as formulas. Paused sequencer, DM text, HubSpot log", "cost": "paid"}
+  ],
+  "arrows": [
+    {"from": "x", "to": "s1", "label": "you import it", "dashed": true},
+    {"from": "s1", "to": "s2"},
+    {"from": "s2", "to": "s3", "label": "only posts that\npassed every check"},
+    {"from": "s3", "to": "s4"},
+    {"from": "s4", "to": "s5"},
+    {"from": "s5", "to": "s6"},
+    {"from": "s6", "to": "s7"},
+    {"from": "s7", "to": "s8"}
+  ]
+}
