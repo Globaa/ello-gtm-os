@@ -1,6 +1,6 @@
 # Workflow B: Lagos businesses hiring a customer service or order-taking rep
 
-**Status:** STRUCTURE-APPROVED 2026-11-13 · E1 approved 2026-11-13 · E2/E3 pending
+**Status:** COPY-APPROVED 2026-11-17 (structure 2026-11-13; E1 2026-11-13; E2, E3 2026-11-17)
 
 Built with `/build-workflow-spec` from `context/icp/icp.md`, `context/icp/personas.md`, `context/icp/signal-matrix.md` (signal U1) and `context/docs/gtm-system.md`. Facts for copy come only from `context/messaging/facts.md` (approved 2026-11-13).
 
@@ -147,8 +147,100 @@ Ello
 
 Facts used: "No app download for customers", "Turn the agent on when you need help", "uses your catalogue and opening hours", approved CTA. ~88 words.
 
-### Email 2 (day 3, same thread)
-PENDING.
+### Email 2 (day 3, same thread) · APPROVED 2026-11-17
+New value vs E1: the hire's side (handover with customer history). Subject: `Re:` E1 subject, unchanged.
 
-### Email 3 (day 8, same thread)
-PENDING.
+```
+{{first_name}},
+
+{{e2l1}}
+
+{The agent|Our agent} {can take|can handle} those and pass anything sensitive or complex to your new hire, along with the customer's history, so they {pick up where the agent left off|never start from scratch}.
+
+{Their time goes to|That leaves them free for} the customers who {really|actually} need a person.
+
+{Would that fit how you see the role?|Is that close to how you want the role to work?}
+
+Fredrick
+Ello
+```
+
+**`{{e2l1}}`: by segment (exhaustive, no fallback)**
+| Segment | Line |
+|---|---|
+| `s1_retail` | I'd guess your new {{role_title}} will hear the same few questions most days: sizes, colours, delivery. |
+| `s2_food` | At busy times, your new {{role_title}} will probably get the same orders and the same "are you open?" questions over and over. |
+| `s3_salon` | My guess is your new {{role_title}} will hear "Are you available?" more than any other question. |
+
+Facts used: "sensitive or complex questions passed to a person" (Variant B), "Customer history and handover" (Starter feature; no plan named in copy), salon vertical line. ~62 words.
+
+### Email 3 (day 8, same thread) · APPROVED 2026-11-17
+New value vs E1/E2: how easy it is to start (setup, no new phone, private number, where the link goes) and a polite close. Subject: `Re:` E1 subject, unchanged.
+
+```
+{{first_name}},
+
+{{e3l1}}
+
+Most businesses are set up in one sitting, and {there's no new phone or SIM: Ello runs in the browser|Ello runs in the browser, so there's no new phone or SIM to buy}.
+
+{Worth setting one up for {{business_name}} before your new hire starts, or should I leave it here?|Should I set one up for {{business_name}} before your new hire starts, or leave it here?}
+
+Fredrick
+Ello
+```
+
+**`{{e3l1}}`: by role channel (exhaustive, no fallback)**
+| Channel | Line |
+|---|---|
+| `chat` | The handle sits in your Instagram bio, so customers who already DM you can tap it to chat or call. |
+| `calls` | Customers call your handle from their browser, without your personal phone number ever being exposed. |
+| `both` | Customers call or chat from the same link, so your new hire works from one place instead of a phone and several apps. |
+| `not_stated` | Your handle can go in your Instagram bio, on your Google profile, on a business card or in your ads, so customers always know where to reach you. |
+
+Facts used: "Most businesses are set up in one sitting.", "No. Ello runs in the browser" (no new phone or SIM), "without your personal phone number ever being exposed", where the link goes; final-email CTA per the ladder. ~52 words.
+
+### Sample: S3 x chat, fully assembled (as a prospect receives it)
+Illustrative lead: owner "Ada", business "Glow Studio", role "receptionist".
+
+**Email 1** · Subject: `your new hire`
+> Ada,
+>
+> With a new receptionist on the way, more clients are probably asking to book.
+>
+> The post says the job is mostly DMs and WhatsApp, and I imagine those keep coming after the shift ends.
+>
+> Ello gives you a handle: one link customers tap to call or chat with you, with no app to download.
+>
+> When your new hire is busy or off for the day, they turn on our AI agent, and it answers routine questions from your catalogue and opening hours.
+>
+> Want me to set up a handle so you can see it?
+>
+> Fredrick
+> Ello
+
+**Email 2** (day 3) · Subject: `Re: your new hire`
+> Ada,
+>
+> My guess is your new receptionist will hear "Are you available?" more than any other question.
+>
+> The agent can take those and pass anything sensitive or complex to your new hire, along with the customer's history, so they pick up where the agent left off.
+>
+> That leaves them free for the customers who actually need a person.
+>
+> Would that fit how you see the role?
+>
+> Fredrick
+> Ello
+
+**Email 3** (day 8) · Subject: `Re: your new hire`
+> Ada,
+>
+> The handle sits in your Instagram bio, so customers who already DM you can tap it to chat or call.
+>
+> Most businesses are set up in one sitting, and there's no new phone or SIM: Ello runs in the browser.
+>
+> Worth setting one up for Glow Studio before your new hire starts, or should I leave it here?
+>
+> Fredrick
+> Ello

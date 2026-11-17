@@ -25,7 +25,7 @@ Ello (https://ello.africa/): one handle (ello.africa/@business) customers call o
 - `meetings/`: meeting notes and transcripts. Read when a decision or request needs its origin. (empty)
 - `output/campaigns/`: campaign specs, assets and copy. Write here; read to reuse past work.
   - `campaign-strategy.md` (DRAFT): 20 ranked campaign ideas with mother intent, tier, volume band, difficulty.
-  - `hiring-customer-service-rep/workflow-spec.md` (STRUCTURE-APPROVED): Workflow B, email only; copy in progress.
+  - `hiring-customer-service-rep/workflow-spec.md` (COPY-APPROVED 2026-11-17): Workflow B, email only; 3 emails (days 0/3/8) approved.
 - `tools/`: scripts and tool configs (imported). Read when a task needs automation.
   - `rex/` (Clay client + `claylens/` Chrome extension, 42 files), `crawl4ai/README.md`, `agent-browser/README.md`
 - `weekly-priorities/`: one file per ISO week (YYYY-Www.md). Read at the start of every session. Now: `2026-W46.md`.
@@ -42,14 +42,14 @@ Ello (https://ello.africa/): one handle (ello.africa/@business) customers call o
 ## Skills
 Imported from bolaji-ships/gtm-starter-kit (0e6d90b), in `.claude/skills/`. Run with `/<name>`.
 - Strategy: `signal-matrix`, `campaign-strategy`, `build-workflow-spec`, `campaign-copy`, `miro-gtm-flowchart`
-- Clay build: `campaign-contract`, `design-clay-table-json`, `import-clay-table`, `build-clay`, `prompt-builder`, `save-clay-schema`
+- Clay build: `clay-build-plan` (875f72f; beginner Clay build guide + swimlane flow PNG from an approved spec, writes instructions only), `campaign-contract`, `design-clay-table-json`, `import-clay-table`, `build-clay`, `prompt-builder`, `save-clay-schema`
 - Clay ops: `campaign-qa`, `calculate-costs`, `workspace-cost-audit`, `export-tables`
 - Research and email: `crawl4ai`, `agent-browser`, `inbox-placement-test`
 
 ## Tools
 - Treg: paid data lookups and generative models (enrichment, SERP, social, scraping). Check the price before every call.
 - Miro: GTM system diagrams and flow charts (used by `/miro-gtm-flowchart`).
-- Notion: publish finished docs for the team. This repo stays the source of truth.
+- Notion: publish finished docs for the team. This repo stays the source of truth. Mirror of `context/` and `output/` (no raw research): [Ello GTM OS](https://app.notion.com/p/41762bcf06ca813cac60ce83bbfc14bc) (private draft, published 2026-11-13).
 - Clay: company and people sourcing, enrichment and AI columns. Local helper: `tools/rex/`.
 - HubSpot: CRM of record for accounts, contacts, deals and outbound activity.
 - n8n: automation glue between signals, Clay, sequencer and HubSpot.
