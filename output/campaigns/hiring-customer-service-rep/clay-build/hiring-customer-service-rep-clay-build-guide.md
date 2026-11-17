@@ -83,7 +83,7 @@ What a finished row in **Businesses** looks like, reading left to right (made-up
 Tick these off **before** the session. None of them should be done live.
 
 - [ ] **Clay account** with access to the workspace you'll build in. Note which plan it's on (Settings → Plans & billing) and how many Actions are left. See [What it costs](#what-it-costs).
-- [ ] **HubSpot connected to Clay** (Settings → Connections → HubSpot). In HubSpot, create a company property called `account_key` (single-line text). Part 4 checks against it.
+- [ ] **HubSpot connected to Clay** (Settings → Connections → HubSpot). In HubSpot, create three company properties (single-line text): `account_key`, `maps_place_id` and `instagram_handle`. Part 4 checks against them. `maps_place_id` and `instagram_handle` are shared with Workflow C (Instagram order posts), so a business contacted by either campaign is skipped by the other for 90 days. If Workflow C's build created them already, don't create them twice.
 - [ ] **The spec is open** next to you: `output/campaigns/hiring-customer-service-rep/workflow-spec.md`. Sections 2 (who's in and out), 3a (the two stages), 4 (signals), 5 (cells), 6 (variables) and the Copy section are what you're building.
 - [ ] **The Stage 1 CSV is ready.** The weekly crawl in spec Section 3a isn't built yet. For this first test, run `tools/crawl4ai` once on the Jobberman Lagos customer service pages (and the Maps and Instagram lookups), or fill the CSV by hand from 25 real posts. It must have exactly these 14 columns, in any order:
 
@@ -215,7 +215,7 @@ Table settings → **Deduplicate** → choose `Job URL`. The same post crawled t
 ### 3.1 Create the empty table
 
 1. **+ Add table** → **Blank table**. Name it `Businesses`.
-2. Add these text columns: `Account Key`, `Business Name`, `Job Title`, `Description`, `Role Channel`, `Maps Category`, `Maps Website` (URL), `Instagram Handle`, `Instagram Followers` (Number), `Instagram Email` (Email), `Job Post Email` (Email), `Owner Name Hint`, `Job URL` (URL), `Posted Date`.
+2. Add these text columns: `Account Key`, `Business Name`, `Job Title`, `Description`, `Role Channel`, `Maps Place ID`, `Maps Category`, `Maps Website` (URL), `Instagram Handle`, `Instagram Followers` (Number), `Instagram Email` (Email), `Job Post Email` (Email), `Owner Name Hint`, `Job URL` (URL), `Posted Date`.
 3. Table settings → **Deduplicate** → choose `Account Key`.
 4. Turn **Auto-run off** here too.
 
@@ -251,13 +251,28 @@ Back in `Job Posts`:
 
 > This only counts posts in our crawl, so it undercounts businesses that also post elsewhere (spec Section 2).
 
-### 4.2 `HubSpot Match` (lookup in HubSpot)
+### 4.2 `HubSpot Match` (lookups in HubSpot)
 
-1. **+ Add column** → search for **HubSpot** → **Lookup company** (may be called "Find object" or "Lookup object"; choose the Company object).
-2. Match the HubSpot property `account_key` to `{{Account Key}}`.
-3. **Run condition:** `{{Open Roles}} >= 1 && {{Open Roles}} <= 3`. Businesses with too many open roles are already out, so don't look them up.
-4. Run on **1 row**. Read the cell: it's empty if HubSpot has no such company, which is expected for most rows.
-5. Formula `In HubSpot?`. Plain English: *"True if the HubSpot lookup found a company that is a customer, has an open deal, or was last contacted in the last 90 days."* Let the AI helper write it from a cell that has a match (add a test company in HubSpot with a known `account_key` if none match yet). Delete the test company afterwards.
+**Why three lookups:** the spec (Sections 2 and 6) checks HubSpot on three shared keys, so a business already contacted by Workflow C (which knows it by its Instagram handle) is skipped here too.
+
+First, one free formula so the handle matches the way both workflows write it:
+
+| Column | Plain English | Formula |
+|---|---|---|
+| `IG Handle Clean` | Instagram Handle in lowercase, without the @ and without spaces | `({{Instagram Handle}} \|\| "").replace(/^@/, "").replace(/\s+/g, "").toLowerCase()` |
+
+Then add up to three HubSpot lookups, in this order. Each one only runs if the ones before found nothing:
+
+| Column | HubSpot property to match | Value | Run condition |
+|---|---|---|---|
+| `HubSpot by Place ID` | `maps_place_id` | `{{Maps Place ID}}` | `{{Open Roles}} >= 1 && {{Open Roles}} <= 3 && !!{{Maps Place ID}}` |
+| `HubSpot by Handle` | `instagram_handle` | `{{IG Handle Clean}}` | `{{Open Roles}} >= 1 && {{Open Roles}} <= 3 && !!{{IG Handle Clean}} && !{{HubSpot by Place ID}}` |
+| `HubSpot by Key` | `account_key` | `{{Account Key}}` | `{{Open Roles}} >= 1 && {{Open Roles}} <= 3 && !{{HubSpot by Place ID}} && !{{HubSpot by Handle}}` |
+
+For each: **+ Add column** → search for **HubSpot** → **Lookup company** (may be called "Find object" or "Lookup object"; choose the Company object) → set the property and value from the table → add the run condition.
+
+1. Run each on **1 row** first. Read the cell: it's empty if HubSpot has no such company, which is expected for most rows.
+2. Formula `In HubSpot?`. Plain English: *"True if any of the three HubSpot lookups found a company that is a customer, has an open deal, or was last contacted in the last 90 days."* Let the AI helper write it from a cell that has a match (add a test company in HubSpot with a known `maps_place_id` if none match yet). Delete the test company afterwards.
 
 **Cost:** check the Actions counter before and after the 1-row run. Some plans charge an Action per CRM lookup, others don't. Write down what you see.
 
@@ -612,7 +627,7 @@ Ello
 6. **Run condition:** `{{Ready to Contact?}} === true && {{Email Status}} === "valid" && {{Hiring Inbox?}} !== true`
 7. **Stop.** On launch day, run it on 1 row, check the lead appears correctly in the paused campaign with all four lines filled, then run the rest.
 
-Before launch, log each pushed business in HubSpot with its `account_key`, so Part 4 suppresses it for 90 days.
+Before launch, log each pushed business in HubSpot with all three properties (`account_key`, `maps_place_id`, `instagram_handle` from `IG Handle Clean`), so Part 4 here and Workflow C's checks both skip it for 90 days.
 
 **Cost:** about **1 Action per lead pushed**. The emails themselves cost nothing in Clay.
 
@@ -626,7 +641,7 @@ Paid, and only on rows that passed every check before it:
 
 | Step | Runs on | Rough cost |
 |---|---|---|
-| HubSpot lookup (4.2) | Every business | Depends on your plan: check the counter on 1 row |
+| HubSpot lookups (4.2) | Businesses with 1 to 3 open roles; up to 3 lookups each, later ones only when earlier ones found nothing | Depends on your plan: check the counter on 1 row |
 | Business Type (AI) (5.1) | Businesses that passed the gates | 1 Action + a small AI cost per business |
 | CAC Check, Claygent (5.3) | Gate-passing businesses in S1 to S3 | More per business than Use AI (browses) |
 | Website Email, Claygent (7.2) | `Ready to Contact?` rows with no free email and a website | More per business than Use AI (browses) |

@@ -1,6 +1,6 @@
 # Workflow B: Lagos businesses hiring a customer service or order-taking rep
 
-**Status:** COPY-APPROVED 2026-11-17 (structure 2026-11-13; E1 2026-11-13; E2, E3 2026-11-17) · Clay-readiness fixes applied 2026-11-17 · Clay build-guide fixes applied 2026-11-17 (both approved by Fredrick)
+**Status:** COPY-APPROVED 2026-11-17 (structure 2026-11-13; E1 2026-11-13; E2, E3 2026-11-17) · Clay-readiness fixes applied 2026-11-17 · Clay build-guide fixes applied 2026-11-17 (both approved by Fredrick) · shared HubSpot keys with Workflow C added 2026-11-17 (approved by Fredrick; Clay build guide updated to match the same day)
 
 Clay build guide: `clay-build/hiring-customer-service-rep-clay-build-guide.md` (from `/clay-build-plan`, 2026-11-17).
 
@@ -34,7 +34,7 @@ Built with `/build-workflow-spec` from `context/icp/icp.md`, `context/icp/person
 | More than 3 open customer-facing roles | Too big for Ello's plans | Clay lookup (multiple rows) on the jobs table by `account_key`, count > 3 |
 | Competitors: Viqe Systems (Zana), CherryBrooks (CallAI), Obeks, NativeTalk, PressOne, Salescabal (Bumpa), Fresha | Competitors | Cleaned employer name on blocklist (formula) |
 | Existing Ello users | Already customers | **Not active in v1.** Turns on when the Ello team provides a sign-up handle list (open question) |
-| HubSpot customer, open deal, or contacted in last 90 days | Suppression | `account_key` lookup in HubSpot (HubSpot needs an `account_key` company property) |
+| HubSpot customer, open deal, or contacted by any Ello workflow in last 90 days | Suppression; a business must never get Workflow B and Workflow C at once | HubSpot lookups on the shared company properties `maps_place_id` (first) and `instagram_handle` (when Stage 1 found one); `name\|lagos` keys without either property are looked up on `account_key` (Section 6, changed 2026-11-17) |
 | Not found on CAC | Ello cannot verify them | **v1: review step.** Claygent column on rows that passed every free gate (about 1 Action per row plus AI cost), output `found \| not_found \| unclear`; `not_found` and `unclear` go to a review view; or check by hand before sending |
 
 ## 3. Sources [ENGINE]
@@ -48,7 +48,7 @@ Built with `/build-workflow-spec` from `context/icp/icp.md`, `context/icp/person
 | Segment and recruiter classification | Job description + employer name (+ Maps category when imported) | Stage 2: Clay Use AI column, JSON output | About 1 Action per row plus AI cost |
 | `{{role_title}}` cleaning | Job title as posted | Stage 2: Clay Use AI column (can share the segment column's prompt as a second output field) | Included in the segment column if shared |
 | Registration review | CAC public search (website form, no API) | Stage 2: Claygent column, last paid gate before email finding; or by hand | About 1 Action per row plus AI cost |
-| HubSpot suppression | HubSpot companies by `account_key` | Stage 2: Clay HubSpot lookup, only on businesses with 1 to 3 open roles | Some Clay plans charge for CRM lookups: check the Actions counter on 1 row |
+| HubSpot suppression | HubSpot companies by `maps_place_id`, then `instagram_handle`, then `account_key` (shared properties, Section 6) | Stage 2: Clay HubSpot lookups, only on businesses with 1 to 3 open roles | Some Clay plans charge for CRM lookups: check the Actions counter on 1 row |
 | Owner first name | Instagram bio, Maps owner replies (imported from Stage 1) | Stage 2: formula picks the first non-empty; else "{{business_name}} team" | Free |
 | Email | Order: (a) email shown on the job post (Stage 1 crawl); (b) Claygent on the Maps website contact page; (c) Instagram public email (Stage 1). First found wins | Stage 2: formula + Claygent (b only runs when a and c are empty) + Clay email validation | About 1 Action per row for each paid step that runs |
 
@@ -126,6 +126,7 @@ Approved 2026-11-13. Updated 2026-11-17 (Clay-readiness fixes).
 | Variable | Source field | Exists in branches |
 |---|---|---|
 | `{{account_key}}` | Internal, not in copy. Google Maps place ID (Stage 1); if none, formula: cleaned employer name, lowercase, trimmed, + `\|lagos` (e.g. `glow studio\|lagos`). Used for the open-roles count, HubSpot suppression and the 90-day dedupe | All |
+| `instagram_handle`, `maps_place_id` (HubSpot) | Internal. Shared HubSpot company properties that **both** Workflow B and Workflow C write on every business they contact (handle lowercase, no "@", from Stage 1 `instagram_handle`; place ID from Stage 1 `maps_place_id`; empty when unknown), alongside `account_key`. Added 2026-11-17 so B and C suppress each other | All |
 | `{{first_name}}` | Owner first name: first non-empty of Instagram bio hint, Maps owner reply hint (Stage 1); if none, resolves to "{{business_name}} team" in Clay | All |
 | `{{business_name}}` | Employer name from the job post, cleaned (no "Ltd", no location suffix) | All |
 | `{{role_title}}` | Job title as posted, cleaned by the segment AI column to a short lowercase plain role ("order taker", "customer service rep", "receptionist"); no gender, salary or location. If it can't be cleaned, falls back to "customer service rep". Copy uses it after "a new" (E1) and "your new" (E2) | All |
@@ -142,7 +143,7 @@ Removed 2026-11-17 (not used by any approved copy): `{{area}}`, `{{dm_to_order}}
 ## 7. Cadence & channel [ENGINE]
 Approved 2026-11-13: **email only for now.** LinkedIn added later once the share of owners with a LinkedIn profile is known.
 - Periodicity: always-on; new job posts pulled weekly (posts ≤ 30 days old) by the Stage 1 n8n run.
-- Dedupe: one sequence per business per 90 days (HubSpot `account_key`).
+- Dedupe: one sequence per business per 90 days **across all Ello workflows** (HubSpot `maps_place_id`, `instagram_handle`, `account_key`). Every business pushed to the sequencer is written to HubSpot with all three properties.
 - Sequence: Email 1 day 0 (new thread); Email 2 day 3 (same thread); Email 3 day 8 (same thread). In the sequencer, set the waits between steps as **3 days, then 5 days** (most sequencers count the wait from the previous step, so don't enter 8).
 - No email found: manual DM/WhatsApp queue (open decision, gtm-system.md). Becomes the main channel if the 20-row email coverage test (Section 3) comes in under half.
 - Sequencer: **not chosen** (open decision). The Clay push step can be built but not run; this blocks launch, not the build.
