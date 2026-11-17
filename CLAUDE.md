@@ -26,6 +26,7 @@ Ello (https://ello.africa/): one handle (ello.africa/@business) customers call o
 - `output/campaigns/`: campaign specs, assets and copy. Write here; read to reuse past work.
   - `campaign-strategy.md` (DRAFT): 20 ranked campaign ideas with mother intent, tier, volume band, difficulty.
   - `hiring-customer-service-rep/workflow-spec.md` (COPY-APPROVED 2026-11-17): Workflow B, email only; 3 emails (days 0/3/8) approved.
+  - `hiring-customer-service-rep/clay-build/`: Clay build guide (beginner, Parts 0 to 10) + swimlane flow (.png/.html/.json), from `/clay-build-plan`.
 - `tools/`: scripts and tool configs (imported). Read when a task needs automation.
   - `rex/` (Clay client + `claylens/` Chrome extension, 42 files), `crawl4ai/README.md`, `agent-browser/README.md`
 - `weekly-priorities/`: one file per ISO week (YYYY-Www.md). Read at the start of every session. Now: `2026-W46.md`.

@@ -1,6 +1,8 @@
 # Workflow B: Lagos businesses hiring a customer service or order-taking rep
 
-**Status:** COPY-APPROVED 2026-11-17 (structure 2026-11-13; E1 2026-11-13; E2, E3 2026-11-17) · Clay-readiness fixes applied 2026-11-17 (approved by Fredrick)
+**Status:** COPY-APPROVED 2026-11-17 (structure 2026-11-13; E1 2026-11-13; E2, E3 2026-11-17) · Clay-readiness fixes applied 2026-11-17 · Clay build-guide fixes applied 2026-11-17 (both approved by Fredrick)
+
+Clay build guide: `clay-build/hiring-customer-service-rep-clay-build-guide.md` (from `/clay-build-plan`, 2026-11-17).
 
 Built with `/build-workflow-spec` from `context/icp/icp.md`, `context/icp/personas.md`, `context/icp/signal-matrix.md` (signal U1) and `context/docs/gtm-system.md`. Facts for copy come only from `context/messaging/facts.md` (approved 2026-11-13).
 
@@ -46,22 +48,26 @@ Built with `/build-workflow-spec` from `context/icp/icp.md`, `context/icp/person
 | Segment and recruiter classification | Job description + employer name (+ Maps category when imported) | Stage 2: Clay Use AI column, JSON output | About 1 Action per row plus AI cost |
 | `{{role_title}}` cleaning | Job title as posted | Stage 2: Clay Use AI column (can share the segment column's prompt as a second output field) | Included in the segment column if shared |
 | Registration review | CAC public search (website form, no API) | Stage 2: Claygent column, last paid gate before email finding; or by hand | About 1 Action per row plus AI cost |
-| HubSpot suppression | HubSpot companies by `account_key` | Stage 2: Clay HubSpot lookup | See Clay's Actions counter |
+| HubSpot suppression | HubSpot companies by `account_key` | Stage 2: Clay HubSpot lookup, only on businesses with 1 to 3 open roles | Some Clay plans charge for CRM lookups: check the Actions counter on 1 row |
 | Owner first name | Instagram bio, Maps owner replies (imported from Stage 1) | Stage 2: formula picks the first non-empty; else "{{business_name}} team" | Free |
 | Email | Order: (a) email shown on the job post (Stage 1 crawl); (b) Claygent on the Maps website contact page; (c) Instagram public email (Stage 1). First found wins | Stage 2: formula + Claygent (b only runs when a and c are empty) + Clay email validation | About 1 Action per row for each paid step that runs |
 
 Not built in v1: Meta Ad Library (signal 6) and Instagram captions (signal 5). See Section 4.
 
-**Email coverage test (before scaling):** run Stage 2 on 20 rows that pass every gate and record how many get a valid email. Rule to test: if fewer than half do, the manual DM/WhatsApp queue becomes the main channel, and that needs a decision before launch.
+**Hiring inboxes (decided 2026-11-17):** an email from source (a) is often the CV inbox. Any email starting `hr@`, `career(s)@`, `job(s)@`, `recruit…@`, `cv@`, `hiring@` or `vacanc…@` is **held** in a review view and not sent until reviewed.
+
+**Two test sizes:**
+- **Build test:** 25 job posts, to prove every column works.
+- **Email coverage test (before scaling):** import every post from the last 30 days, so at least 20 businesses pass every gate, and record how many get a valid email. Rule to test: if fewer than half do, the manual DM/WhatsApp queue becomes the main channel, and that needs a decision before launch.
 
 ## 3a. Build architecture [ENGINE]
 Clay cannot reach Jobberman, treg or the CAC site directly, so the build has two stages.
 
-**Stage 1, outside Clay (crawl4ai + treg, run weekly by n8n).** Output one row per job post with these columns: `employer_name`, `title`, `location`, `posted_date` (converted from "3 days ago" to `YYYY-MM-DD` using the crawl date), `description`, `job_url`, `job_post_email` (if shown), `maps_place_id`, `maps_category`, `maps_website`, `instagram_handle`, `instagram_followers`, `instagram_email`, `owner_name_hint`. Import into Clay by CSV or webhook.
+**Stage 1, outside Clay (crawl4ai + treg, run weekly by n8n). NOT BUILT YET.** Owner: NEEDS INPUT. First step: a one-off `tools/crawl4ai` run on the Jobberman Lagos customer service category **and each job page** (the list page alone has no full description), plus the Maps and Instagram lookups, saved as the CSV below. Until then the first CSV can be filled by hand from real posts. Fill `maps_place_id` for as many rows as possible: the name-based `account_key` fallback misses when one business is written two ways. Output one row per job post with these columns: `employer_name`, `title`, `location`, `posted_date` (converted from "3 days ago" to `YYYY-MM-DD` using the crawl date), `description`, `job_url`, `job_post_email` (if shown), `maps_place_id`, `maps_category`, `maps_website`, `instagram_handle`, `instagram_followers`, `instagram_email`, `owner_name_hint`. Import into Clay by CSV or webhook.
 
 **Stage 2, inside Clay, in this order:**
 1. Free formulas: clean employer name, `account_key`, trigger title regex, Lagos check, 30-day check, recruiter regex, confidential check, competitor blocklist, role channel (signal 3).
-2. Free lookups: open-roles count by `account_key` (exclude > 3); HubSpot suppression.
+2. Lookups: open-roles count by `account_key` (free; exclude > 3); HubSpot suppression (may cost Actions on some plans; check on 1 row).
 3. Paid, on rows that passed 1 and 2: segment + `role_title` AI column (`unclear` to review).
 4. Paid, on rows in S1 to S3: CAC Claygent review.
 5. Paid, on rows that passed 4: email chain and validation.
@@ -79,6 +85,10 @@ Clay cannot reach Jobberman, treg or the CAC site directly, so the build has two
 | 4 | Job title as posted | context-clause | Cleaned to a short lowercase plain role (see Section 6) | AI column (shared with signal 2) | text → `{{role_title}}` |
 | 5 | Takes orders in Instagram DMs (stacks with N1) | context-clause | Instagram account found AND a caption in last 14 days matches `dm to order\|send a dm\|whatsapp to order\|price in dm` | **Not built in v1.** Needs treg (Stage 1); no approved copy line uses it | boolean |
 | 6 | Running a Meta ad (stacks with U3) | context-clause | Advertiser matches employer AND an ad started ≤ 30 days ago | **Not built in v1.** Needs treg (Stage 1); no approved copy line uses it | boolean |
+
+**Several posts from one business (2026-11-17):** signals 3 and 4 are read from the business's **newest** post (latest `posted_date`). Older posts only count towards the open-roles check.
+
+**Review and override (2026-11-17):** a `unclear` segment or a CAC miss goes to a review view. A reviewer can bring the row back with two manual columns: `segment_override` (only `s1_retail`, `s2_food` or `s3_salon`; replaces the AI segment) and `cac_override` (checkbox; ticked when CAC registration is confirmed by hand). Rows a reviewer leaves untouched are never sent.
 
 Why signal 3 was tightened (2026-11-17): the old pattern matched "send your CV to this phone number", "must own a smartphone" and "chatty personality", which would route leads to the wrong Email 1 line 2 and Email 3 line 1.
 
@@ -119,7 +129,9 @@ Approved 2026-11-13. Updated 2026-11-17 (Clay-readiness fixes).
 | `{{first_name}}` | Owner first name: first non-empty of Instagram bio hint, Maps owner reply hint (Stage 1); if none, resolves to "{{business_name}} team" in Clay | All |
 | `{{business_name}}` | Employer name from the job post, cleaned (no "Ltd", no location suffix) | All |
 | `{{role_title}}` | Job title as posted, cleaned by the segment AI column to a short lowercase plain role ("order taker", "customer service rep", "receptionist"); no gender, salary or location. If it can't be cleaned, falls back to "customer service rep". Copy uses it after "a new" (E1) and "your new" (E2) | All |
-| `{{email}}` | First found of: job post email, Claygent on Maps website, Instagram public email. Only sent when Clay validation returns valid | All that reach sending |
+| `{{email}}` | First found of: job post email, Claygent on Maps website, Instagram public email. Only sent when Clay validation returns valid and it isn't a hiring inbox (Section 3) | All that reach sending |
+| `segment_override` | Internal, not in copy. Manual review column (Section 4) | Reviewed rows only |
+| `cac_override` | Internal, not in copy. Manual review checkbox (Section 4) | Reviewed rows only |
 | `{{e1l1}}` | Email 1 line 1, by segment (formula, verbatim) | All |
 | `{{e1l2}}` | Email 1 line 2, by role channel (formula, verbatim) | All |
 | `{{e2l1}}` | Email 2 line 1, by segment (formula, verbatim) | All |
@@ -131,7 +143,7 @@ Removed 2026-11-17 (not used by any approved copy): `{{area}}`, `{{dm_to_order}}
 Approved 2026-11-13: **email only for now.** LinkedIn added later once the share of owners with a LinkedIn profile is known.
 - Periodicity: always-on; new job posts pulled weekly (posts ≤ 30 days old) by the Stage 1 n8n run.
 - Dedupe: one sequence per business per 90 days (HubSpot `account_key`).
-- Sequence: Email 1 day 0 (new thread); Email 2 day 3 (same thread); Email 3 day 8 (same thread).
+- Sequence: Email 1 day 0 (new thread); Email 2 day 3 (same thread); Email 3 day 8 (same thread). In the sequencer, set the waits between steps as **3 days, then 5 days** (most sequencers count the wait from the previous step, so don't enter 8).
 - No email found: manual DM/WhatsApp queue (open decision, gtm-system.md). Becomes the main channel if the 20-row email coverage test (Section 3) comes in under half.
 - Sequencer: **not chosen** (open decision). The Clay push step can be built but not run; this blocks launch, not the build.
 
