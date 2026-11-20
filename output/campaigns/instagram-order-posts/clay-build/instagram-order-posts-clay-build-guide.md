@@ -814,7 +814,7 @@ Found while writing this guide. **All 6 were written into the spec on 2026-11-17
 
 **Spec fixes of 2026-11-20 (approved by Fredrick), now built into this guide:**
 - HubSpot suppression rule and the shared `ello_last_outreach_date` property: Before you start, Part 4.2, Part 10.3, checklist.
-- Lagos regex without `maryland` and `vi`; competitor check by exact handle (handles still NEEDS INPUT in the spec): Part 2.3.
+- Lagos regex without `maryland` and `vi`; competitor check by exact handle (four handles confirmed 2026-11-20; Zana, Obeks and NativeTalk still NEEDS INPUT in the spec): Part 2.3.
 - Posts found on two hashtags pass on either keyword list: Before you start (one row, comma-separated hashtags), Part 2.2. The spec's Stage 1 output now says the same.
 - Maps match rule: Before you start.
 - CAC test on 5 known businesses and the open CAC decision: Before you start, Part 5.3.
