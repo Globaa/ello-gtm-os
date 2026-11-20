@@ -1,6 +1,6 @@
 # Workflow B: Lagos businesses hiring a customer service or order-taking rep
 
-**Status:** COPY-APPROVED 2026-11-17 (structure 2026-11-13; E1 2026-11-13; E2, E3 2026-11-17) · Clay-readiness fixes applied 2026-11-17 · Clay build-guide fixes applied 2026-11-17 (both approved by Fredrick) · shared HubSpot keys with Workflow C added 2026-11-17 (approved by Fredrick; Clay build guide updated to match the same day)
+**Status:** COPY-APPROVED 2026-11-17 (structure 2026-11-13; E1 2026-11-13; E2, E3 2026-11-17) · Clay-readiness fixes applied 2026-11-17 · Clay build-guide fixes applied 2026-11-17 (both approved by Fredrick) · shared HubSpot keys with Workflow C added 2026-11-17 (approved by Fredrick; Clay build guide updated to match the same day) · pre-build check fixes applied 2026-11-20 (approved by Fredrick: signals table repaired, HubSpot suppression rule, Instagram lookup for B/C dedupe, CAC test, owner name from AI, email order, name cleaning, no-email view; owner name never an application contact) · Clay build guide updated to match 2026-11-20
 
 Clay build guide: `clay-build/hiring-customer-service-rep-clay-build-guide.md` (from `/clay-build-plan`, 2026-11-17).
 
@@ -34,8 +34,8 @@ Built with `/build-workflow-spec` from `context/icp/icp.md`, `context/icp/person
 | More than 3 open customer-facing roles | Too big for Ello's plans | Clay lookup (multiple rows) on the jobs table by `account_key`, count > 3 |
 | Competitors: Viqe Systems (Zana), CherryBrooks (CallAI), Obeks, NativeTalk, PressOne, Salescabal (Bumpa), Fresha | Competitors | Cleaned employer name on blocklist (formula) |
 | Existing Ello users | Already customers | **Not active in v1.** Turns on when the Ello team provides a sign-up handle list (open question) |
-| HubSpot customer, open deal, or contacted by any Ello workflow in last 90 days | Suppression; a business must never get Workflow B and Workflow C at once | HubSpot lookups on the shared company properties `maps_place_id` (first) and `instagram_handle` (when Stage 1 found one); `name\|lagos` keys without either property are looked up on `account_key` (Section 6, changed 2026-11-17) |
-| Not found on CAC | Ello cannot verify them | **v1: review step.** Claygent column on rows that passed every free gate (about 1 Action per row plus AI cost), output `found \| not_found \| unclear`; `not_found` and `unclear` go to a review view; or check by hand before sending |
+| HubSpot customer, open deal, or contacted by any Ello workflow in last 90 days | Suppression; a business must never get Workflow B and Workflow C at once | HubSpot lookups on the shared company properties `maps_place_id` (first) and `instagram_handle` (when Stage 1 found one); `name\|lagos` keys without either property are looked up on `account_key` (Section 6, changed 2026-11-17). A found company is suppressed when `lifecyclestage` = customer, OR `hs_num_open_deals` > 0, OR `ello_last_outreach_date` is within the last 90 days (rule added 2026-11-20; confirm the first two internal property names in HubSpot settings) |
+| Not found on CAC | Ello cannot verify them | **v1: review step.** Claygent column on rows that passed every free gate (about 1 Action per row plus AI cost), output `found \| not_found \| unclear`; `not_found` and `unclear` go to a review view; or check by hand before sending. **Untested:** before the build test, run the Claygent on 5 businesses already known to be CAC-registered; if it can't read the CAC search results, do this check by hand |
 
 ## 3. Sources [ENGINE]
 | Purpose | Source | Stage and tool | Cost |
@@ -43,14 +43,14 @@ Built with `/build-workflow-spec` from `context/icp/icp.md`, `context/icp/person
 | Trigger (main) | Jobberman Lagos customer service category (https://www.jobberman.com/jobs/customer-service-support/lagos) plus each job page | Stage 1: `tools/crawl4ai`, weekly via n8n. Clay cannot read it (no API; HTTP returns raw HTML) | Free locally |
 | Trigger (secondary) | LinkedIn Jobs, Lagos | Stage 1: treg `apify.linkedin.search.jobs`. Optional: check whether Clay's own job-post search covers Lagos (preview the count first) | $0.001 per call (treg, 2026-11-12) |
 | Employer to account (`account_key`, Maps category, website) | Google Maps search by employer name + Lagos | Stage 1: treg `crawl4ai.google.serp.maps` | $0.00023 per call (treg, 2026-11-12) |
-| Instagram account | Maps website field, or link on the job page | Stage 1: parse. Lookup by business name still OPEN | $0 |
+| Instagram account | Maps website field, or link on the job page; if neither, an Instagram search by business name | Stage 1: parse first. Then (added 2026-11-20) a treg Instagram search by cleaned business name, only when parsing found nothing; endpoint and price picked with treg `catalog_get` before the first call. Keep a result only when its display name matches the business name AND its bio mentions Lagos or a Lagos area (Workflow C's list); else empty. Without this, B rarely has a handle and C rarely has a place ID, so a business in both could get both | $0 to parse; search price checked before the first call |
 | Instagram followers and public email | Profile | Stage 1: treg `tikhub.instagram.user.profile`, only when an account is found | $0.001 per call (treg, 2026-11-12) |
-| Segment and recruiter classification | Job description + employer name (+ Maps category when imported) | Stage 2: Clay Use AI column, JSON output | About 1 Action per row plus AI cost |
+| Segment, recruiter classification and owner first name | Job description + employer name (+ Maps category and Instagram bio when imported) | Stage 2: Clay Use AI column, JSON output | About 1 Action per row plus AI cost |
 | `{{role_title}}` cleaning | Job title as posted | Stage 2: Clay Use AI column (can share the segment column's prompt as a second output field) | Included in the segment column if shared |
 | Registration review | CAC public search (website form, no API) | Stage 2: Claygent column, last paid gate before email finding; or by hand | About 1 Action per row plus AI cost |
-| HubSpot suppression | HubSpot companies by `maps_place_id`, then `instagram_handle`, then `account_key` (shared properties, Section 6) | Stage 2: Clay HubSpot lookups, only on businesses with 1 to 3 open roles | Some Clay plans charge for CRM lookups: check the Actions counter on 1 row |
-| Owner first name | Instagram bio, Maps owner replies (imported from Stage 1) | Stage 2: formula picks the first non-empty; else "{{business_name}} team" | Free |
-| Email | Order: (a) email shown on the job post (Stage 1 crawl); (b) Claygent on the Maps website contact page; (c) Instagram public email (Stage 1). First found wins | Stage 2: formula + Claygent (b only runs when a and c are empty) + Clay email validation | About 1 Action per row for each paid step that runs |
+| HubSpot suppression | HubSpot companies by `maps_place_id`, then `instagram_handle`, then `account_key` (shared properties, Section 6); suppression rule in Section 2 | Stage 2: Clay HubSpot lookups, only on businesses with 1 to 3 open roles | Some Clay plans charge for CRM lookups: check the Actions counter on 1 row |
+| Owner first name | Instagram bio (imported raw from Stage 1) and job description | Stage 2: field `owner_first_name` in the segment Use AI column, only when the text calls that person the owner, founder, CEO or MD; never an application contact ("send your CV to Mrs Bisi") or HR person; else "{{business_name}} team". Changed 2026-11-20: no Stage 1 extraction method existed, and the Maps search doesn't return owner replies. Expect most rows to use the fallback | Included in the segment column |
+| Email | Order: (a) email shown on the job post (Stage 1 crawl); (b) Instagram public email (Stage 1); (c) Claygent on the Maps website contact page, only when (a) and (b) are empty. First found wins | Stage 2: formula + Claygent (c) + Clay email validation | About 1 Action per row for each paid step that runs |
 
 Not built in v1: Meta Ad Library (signal 6) and Instagram captions (signal 5). See Section 4.
 
@@ -63,24 +63,22 @@ Not built in v1: Meta Ad Library (signal 6) and Instagram captions (signal 5). S
 ## 3a. Build architecture [ENGINE]
 Clay cannot reach Jobberman, treg or the CAC site directly, so the build has two stages.
 
-**Stage 1, outside Clay (crawl4ai + treg, run weekly by n8n). NOT BUILT YET.** Owner: NEEDS INPUT. First step: a one-off `tools/crawl4ai` run on the Jobberman Lagos customer service category **and each job page** (the list page alone has no full description), plus the Maps and Instagram lookups, saved as the CSV below. Until then the first CSV can be filled by hand from real posts. Fill `maps_place_id` for as many rows as possible: the name-based `account_key` fallback misses when one business is written two ways. Output one row per job post with these columns: `employer_name`, `title`, `location`, `posted_date` (converted from "3 days ago" to `YYYY-MM-DD` using the crawl date), `description`, `job_url`, `job_post_email` (if shown), `maps_place_id`, `maps_category`, `maps_website`, `instagram_handle`, `instagram_followers`, `instagram_email`, `owner_name_hint`. Import into Clay by CSV or webhook.
+**Stage 1, outside Clay (crawl4ai + treg, run weekly by n8n). NOT BUILT YET.** Owner: NEEDS INPUT. First step: a one-off `tools/crawl4ai` run on the Jobberman Lagos customer service category **and each job page** (the list page alone has no full description), plus the Maps and Instagram lookups (including the Instagram search by name, Section 3), saved as the CSV below. Until then the first CSV can be filled by hand from real posts. Fill `maps_place_id` for as many rows as possible: the name-based `account_key` fallback misses when one business is written two ways. Output one row per job post with these columns: `employer_name`, `title`, `location`, `posted_date` (converted from "3 days ago" to `YYYY-MM-DD` using the crawl date), `description`, `job_url`, `job_post_email` (if shown), `maps_place_id`, `maps_category`, `maps_website`, `instagram_handle`, `instagram_followers`, `instagram_email`, `instagram_bio` (raw; replaces `owner_name_hint`, 2026-11-20). Import into Clay by CSV or webhook.
 
 **Stage 2, inside Clay, in this order:**
 1. Free formulas: clean employer name, `account_key`, trigger title regex, Lagos check, 30-day check, recruiter regex, confidential check, competitor blocklist, role channel (signal 3).
 2. Lookups: open-roles count by `account_key` (free; exclude > 3); HubSpot suppression (may cost Actions on some plans; check on 1 row).
-3. Paid, on rows that passed 1 and 2: segment + `role_title` AI column (`unclear` to review).
+3. Paid, on rows that passed 1 and 2: segment + `role_title` + `owner_first_name` AI column (`unclear` to review).
 4. Paid, on rows in S1 to S3: CAC Claygent review.
 5. Paid, on rows that passed 4: email chain and validation.
 6. Free: copy formula columns (`e1l1`, `e1l2`, `e2l1`, `e3l1`), verbatim from the approved copy.
 7. Sequencer push: built last and not run (sequencer not chosen; blocks launch, not build).
 
 ## 4. Signals table [ENGINE]
-| # | Signal | Role | How it's read | Output |
-|---|---|---|---|---|
 | # | Signal | Role | How it's read | Clay data source | Output |
 |---|---|---|---|---|---|
 | 1 | Customer-facing job post, Lagos, ≤ 30 days | trigger | Regex on title (Section 2 pattern) AND location contains "Lagos" AND `today - posted_date ≤ 30` | Formula on imported Stage 1 fields (`posted_date` already `YYYY-MM-DD`) | boolean |
-| 2 | Employer segment | router | Use AI column on employer name + job description (+ Maps category when present). JSON output `{segment, evidence}`. Enum: `s1_retail`, `s2_food`, `s3_salon`, `recruiter`, `clinic`, `other`, `unclear`. `unclear` goes to a review view, never to a cell | AI column | enum (only `s1_retail`, `s2_food`, `s3_salon` continue) |
+| 2 | Employer segment | router | Use AI column on employer name + job description (+ Maps category and Instagram bio when present). JSON output `{segment, role_title, owner_first_name, evidence}`. Enum: `s1_retail`, `s2_food`, `s3_salon`, `recruiter`, `clinic`, `other`, `unclear`. `unclear` goes to a review view, never to a cell | AI column | enum (only `s1_retail`, `s2_food`, `s3_salon` continue) |
 | 3 | Channels the role covers | router | Regex on job description, case-insensitive, phrases about the work only. Chat: `\b(whatsapp\|instagram) (orders?\|messages\|enquiries\|dms?\|chats?)\b\|\bdms?\b\|direct messages\|live chat\|online (orders\|enquiries)\|social media (enquiries\|messages\|pages)\|respond(ing)? to (messages\|chats)`. Calls: `answer(ing)? (calls\|the phone\|phone calls)\|phone (orders\|calls\|enquiries)\|(inbound\|incoming\|outbound) calls\|telephone (orders\|enquiries)\|call (customers\|clients)`. Chat only = `chat`; calls only = `calls`; both = `both`; neither = `not_stated`. Test on 50 real descriptions before the full run | Formula | enum: chat / calls / both / not_stated |
 | 4 | Job title as posted | context-clause | Cleaned to a short lowercase plain role (see Section 6) | AI column (shared with signal 2) | text → `{{role_title}}` |
 | 5 | Takes orders in Instagram DMs (stacks with N1) | context-clause | Instagram account found AND a caption in last 14 days matches `dm to order\|send a dm\|whatsapp to order\|price in dm` | **Not built in v1.** Needs treg (Stage 1); no approved copy line uses it | boolean |
@@ -118,7 +116,7 @@ Approved by Fredrick 2026-11-13. Segment (3) x role channel (4) = 12 cells, exha
 | S3 x both | `s3_salon` + `both` | Bookings come by phone and DM | One link for booking calls and chats; the hire sees the customer history in one place |
 | S3 x not_stated | `s3_salon` + `not_stated` | A salon is adding `{{role_title}}`; channel unknown | One link where clients call or chat to book; the agent answers between appointments |
 
-Branch coverage: `{{role_title}}` and `{{business_name}}` exist in every cell. Context clauses (signals 5, 6) may add one line when true; they never pick the cell.
+Branch coverage: `{{role_title}}` and `{{business_name}}` exist in every cell. Context clauses (signals 5, 6) are not built and not used in v1; if added later, they may add one line when true and never pick the cell.
 
 ## 6. Variables contract [ENGINE]
 Approved 2026-11-13. Updated 2026-11-17 (Clay-readiness fixes).
@@ -127,10 +125,11 @@ Approved 2026-11-13. Updated 2026-11-17 (Clay-readiness fixes).
 |---|---|---|
 | `{{account_key}}` | Internal, not in copy. Google Maps place ID (Stage 1); if none, formula: cleaned employer name, lowercase, trimmed, + `\|lagos` (e.g. `glow studio\|lagos`). Used for the open-roles count, HubSpot suppression and the 90-day dedupe | All |
 | `instagram_handle`, `maps_place_id` (HubSpot) | Internal. Shared HubSpot company properties that **both** Workflow B and Workflow C write on every business they contact (handle lowercase, no "@", from Stage 1 `instagram_handle`; place ID from Stage 1 `maps_place_id`; empty when unknown), alongside `account_key`. Added 2026-11-17 so B and C suppress each other | All |
-| `{{first_name}}` | Owner first name: first non-empty of Instagram bio hint, Maps owner reply hint (Stage 1); if none, resolves to "{{business_name}} team" in Clay | All |
-| `{{business_name}}` | Employer name from the job post, cleaned (no "Ltd", no location suffix) | All |
+| `ello_last_outreach_date` (HubSpot) | Internal. Shared HubSpot company date property that **both** workflows write on every contact (the sequencer push date). Needed because a logged HubSpot note doesn't update "last contacted". Drives the 90-day rule. Added 2026-11-20 | All |
+| `{{first_name}}` | Owner first name from the segment AI field `owner_first_name` (Instagram bio or job description), only if the text calls that person the owner, founder, CEO or MD (never an application contact or HR person); else "{{business_name}} team" (changed 2026-11-20) | All |
+| `{{business_name}}` | Employer name from the job post, cleaned by formula (2026-11-20): drop "Ltd", "Limited", "Nig", "Nigeria Limited" only as whole trailing words (so "Nigella's Kitchen" is kept); drop a trailing location after ` - `, ` – `, `, ` or in brackets when it matches Lagos or a Lagos area (Workflow C's list), e.g. "Glow Studio - Lekki", "Glow Studio (Lagos)", "Glow Studio, Ikeja" all become "Glow Studio" | All |
 | `{{role_title}}` | Job title as posted, cleaned by the segment AI column to a short lowercase plain role ("order taker", "customer service rep", "receptionist"); no gender, salary or location. If it can't be cleaned, falls back to "customer service rep". Copy uses it after "a new" (E1) and "your new" (E2) | All |
-| `{{email}}` | First found of: job post email, Claygent on Maps website, Instagram public email. Only sent when Clay validation returns valid and it isn't a hiring inbox (Section 3) | All that reach sending |
+| `{{email}}` | First found of: job post email, Instagram public email, Claygent on Maps website. Only sent when Clay validation returns valid and it isn't a hiring inbox (Section 3) | All that reach sending |
 | `segment_override` | Internal, not in copy. Manual review column (Section 4) | Reviewed rows only |
 | `cac_override` | Internal, not in copy. Manual review checkbox (Section 4) | Reviewed rows only |
 | `{{e1l1}}` | Email 1 line 1, by segment (formula, verbatim) | All |
@@ -143,10 +142,11 @@ Removed 2026-11-17 (not used by any approved copy): `{{area}}`, `{{dm_to_order}}
 ## 7. Cadence & channel [ENGINE]
 Approved 2026-11-13: **email only for now.** LinkedIn added later once the share of owners with a LinkedIn profile is known.
 - Periodicity: always-on; new job posts pulled weekly (posts ≤ 30 days old) by the Stage 1 n8n run.
-- Dedupe: one sequence per business per 90 days **across all Ello workflows** (HubSpot `maps_place_id`, `instagram_handle`, `account_key`). Every business pushed to the sequencer is written to HubSpot with all three properties.
+- Dedupe: one sequence per business per 90 days **across all Ello workflows** (HubSpot `maps_place_id`, `instagram_handle`, `account_key`). Every business pushed to the sequencer is written to HubSpot with all three properties plus `ello_last_outreach_date` (the push date).
 - Sequence: Email 1 day 0 (new thread); Email 2 day 3 (same thread); Email 3 day 8 (same thread). In the sequencer, set the waits between steps as **3 days, then 5 days** (most sequencers count the wait from the previous step, so don't enter 8).
-- No email found: manual DM/WhatsApp queue (open decision, gtm-system.md). Becomes the main channel if the 20-row email coverage test (Section 3) comes in under half.
+- No email found: rows are parked in a `No email` view and never sent (added 2026-11-20) until the manual DM/WhatsApp queue is decided (open decision, gtm-system.md); it has no copy yet. Becomes the main channel if the 20-row email coverage test (Section 3) comes in under half.
 - Sequencer: **not chosen** (open decision). The Clay push step can be built but not run; this blocks launch, not the build.
+- Launch check: Email 3 puts `{{business_name}}` inside a spintax option. Once the sequencer is chosen, convert the spintax to its syntax and send a test to confirm the nested variable fills.
 
 ---
 

@@ -1,6 +1,6 @@
 # Workflow C: Lagos sellers and food businesses taking orders by message on Instagram
 
-**Status:** COPY-APPROVED 2026-11-17 (structure, angle fix, E1, E2, E3 and DM all 2026-11-17) · Clay-readiness fixes applied 2026-11-17 · Clay build-guide fixes applied 2026-11-17 (both approved by Fredrick)
+**Status:** COPY-APPROVED 2026-11-17 (structure, angle fix, E1, E2, E3 and DM all 2026-11-17) · Clay-readiness fixes applied 2026-11-17 · Clay build-guide fixes applied 2026-11-17 (both approved by Fredrick) · pre-build check fixes applied 2026-11-20 (approved by Fredrick: HubSpot suppression rule, CAC check, Lagos regex, competitor handles, post dedupe, Maps match, coverage-test rule; trigger row covers posts on both hashtag sets) · Clay build guide updated to match 2026-11-20
 
 Clay build guide: `clay-build/instagram-order-posts-clay-build-guide.md` (from `/clay-build-plan`, 2026-11-17).
 
@@ -18,12 +18,12 @@ Built with `/build-workflow-spec` from campaign ideas #1 (DM-to-order sellers) a
 **Include:**
 | Box | Rule | Source |
 |---|---|---|
-| Geography | Found on a Lagos hashtag (below) AND bio or post location matches (case-insensitive) `lagos\|lekki\|ikeja\|yaba\|surulere\|ajah\|ikoyi\|victoria island\|\bvi\b\|festac\|gbagada\|ikorodu\|magodo\|ogba\|maryland\|oshodi\|egbeda\|ojodu\|ilupeju\|isolo\|apapa\|sangotedo\|chevron`. Rule to test on the first pull: non-Lagos sellers use Lagos hashtags too; add missed areas to this list | icp.md (Lagos first, hypothesis) |
+| Geography | Found on a Lagos hashtag (below) AND bio or post location matches (case-insensitive) `lagos\|lekki\|ikeja\|yaba\|surulere\|ajah\|ikoyi\|victoria island\|festac\|gbagada\|ikorodu\|magodo\|ogba\|oshodi\|egbeda\|ojodu\|ilupeju\|isolo\|apapa\|sangotedo\|chevron`. Every row comes from a Lagos hashtag, so this regex is the only real location filter. `maryland` (also a US state) and `vi` (matches any standalone "vi") were removed 2026-11-20; a bio like "Maryland, Lagos" or "VI, Lagos" still passes on "lagos". Rule to test on the first pull: non-Lagos sellers use Lagos hashtags too; add missed areas to this list | icp.md (Lagos first, hypothesis) |
 | Segment | Classified as S1 retail and social commerce or S2 food and takeout. S3 salons and everything else are out of this workflow | signal-matrix.md N1, N2 |
 | Size | Under 50k Instagram followers (rule to test, same threshold as Workflow B). Followers are the only size proxy; headcount isn't visible. A **blank** follower count fails (the rule can't be checked) and goes to the `Dropped` view, so missing profiles in Stage 1 are visible | icp.md (1 to 5 people), gtm-system.md step 5 |
 | Account | Business or creator account (if the profile data returns that flag) passes. Otherwise the Use AI column's `is_seller` field decides from the bio: `yes` passes, `no` is out, `unclear` goes to review. Whether treg's profile call returns the flag (`is_business`) is unconfirmed: check it in the Stage 1 test and record the result here. If it doesn't, every account relies on `is_seller` | INFERRED: Ello sells to businesses [co] |
 | Registration | CAC-registered. v1: review step, not a hard filter (same as Workflow B). Matching an Instagram name to CAC is fuzzier than matching a job-post employer | icp.md, signal-matrix.md N4 |
-| Trigger | A post in the last 14 days on a listed hashtag whose caption matches the keyword list **for the hashtag set it was found on** (S1 hashtags use S1 keywords, S2 hashtags use S2 keywords; table below). The AI segment (Section 4) only routes; it never picks the keyword list | signal-matrix.md N1, N2 |
+| Trigger | A post in the last 14 days on a listed hashtag whose caption matches the keyword list **for the hashtag set it was found on** (S1 hashtags use S1 keywords, S2 hashtags use S2 keywords; table below), or either set's list if the post was found on both (Section 3). The AI segment (Section 4) only routes; it never picks the keyword list | signal-matrix.md N1, N2 |
 | Recipient | The owner (economic buyer); if no owner name is found, "{{business_name}} team" | personas.md |
 
 **Trigger definition per segment:**
@@ -40,9 +40,9 @@ Hashtags are from signal-matrix.md; the first test pull decides which to keep. `
 | 50k or more followers | Too big for Ello's plans | Profile follower count |
 | Salons, clinics, anything outside S1/S2 (fashion schools, influencers, course resellers, event planners) | Not this workflow's ICP | Segment returns `s3_salon`, `clinic`, `other`; `unclear` goes to review |
 | Non-Lagos sellers | Lagos first | No Lagos or Lagos area in bio or location |
-| Competitors' own accounts: Zana, CallAI, Obeks, NativeTalk, PressOne, Bumpa, Fresha | Competitors | Handle or name on blocklist (formula) |
+| Competitors' own accounts: Zana, CallAI, Obeks, NativeTalk, PressOne, Bumpa, Fresha | Competitors | Formula: **exact match** of `{{account_key}}` against a list of the competitors' Instagram handles. Never a substring match on names ("zana" would block unrelated sellers). Handles: NEEDS INPUT (look each one up once and list it here) |
 | Existing Ello users | Already customers | Not active in v1 (needs the sign-up handle list) |
-| Contacted by any Ello workflow in the last 90 days (email or DM), HubSpot customer, or open deal | Suppression; a business must never get Workflow B and Workflow C at once | Two HubSpot lookups on shared company properties written by both workflows: first `instagram_handle`, then `maps_place_id` if Stage 1 matched one (Section 6) |
+| Contacted by any Ello workflow in the last 90 days (email or DM), HubSpot customer, or open deal | Suppression; a business must never get Workflow B and Workflow C at once | Two HubSpot lookups on shared company properties written by both workflows: first `instagram_handle`, then `maps_place_id` if Stage 1 matched one (Section 6). A found company is suppressed when `lifecyclestage` = customer, OR `hs_num_open_deals` > 0, OR `ello_last_outreach_date` is within the last 90 days (rule added 2026-11-20; confirm the first two internal property names in HubSpot settings) |
 | Not found on CAC | Ello can't verify them | v1 review step |
 
 ## 3. Sources [ENGINE]
@@ -53,23 +53,25 @@ Two stages, as in Workflow B: Clay can't call treg. **Stage 1** runs outside Cla
 | Trigger: recent posts | Instagram hashtag posts for each Section 2 hashtag | Stage 1: treg `anyapi.instagram.hashtag.posts` (99.4% success; the routed treg endpoint was only 68%) | $0.002 per call |
 | Caption keyword match, 14-day check | Caption and date from the call above | Stage 1 filter (profiles fetched only for matching posts), repeated as a Stage 2 formula | Free |
 | Profile: followers, bio, business flag, category, public email, bio link | Instagram profile of each matching account | Stage 1: treg `tikhub.instagram.user.profile` (99.9% success) | $0.001 per account |
-| Maps match: place ID, Maps category, website | Google Maps search by business name + Lagos | Stage 1: treg `crawl4ai.google.serp.maps`; kept only when the listing links to the same handle, or name and area match exactly; else empty | $0.00023 per call |
+| Maps match: place ID, Maps category, website | Google Maps search by business name + Lagos | Stage 1: treg `crawl4ai.google.serp.maps`; kept only when the listing links to the same Instagram handle, OR the listing name matches the cleaned business name exactly AND the listing address is in Lagos; else empty | $0.00023 per call |
 | Lagos check, personal number in bio (U2), competitor blocklist | Bio, post location, handle | Stage 2: Clay formulas | Free |
 | Segment, item, order day, owner first name | Caption + bio + Instagram category (+ Maps category) | Stage 2: one Clay Use AI column, JSON output with enums | About 1 Action per row plus AI cost |
-| HubSpot suppression | HubSpot company by `instagram_handle`, then by `maps_place_id` (shared properties, Section 6) | Stage 2: Clay HubSpot lookups | Check the Actions counter on 1 row |
-| Registration review | CAC public search | Stage 2: Claygent, or by hand (v1 review step) | More per row than Use AI |
+| HubSpot suppression | HubSpot company by `instagram_handle`, then by `maps_place_id` (shared properties, Section 6); suppression rule in Section 2 | Stage 2: Clay HubSpot lookups | Check the Actions counter on 1 row |
+| Registration review | CAC public search | Stage 2: Claygent, output `found \| not_found \| unclear`, run only on rows that passed every free gate and the AI segment gate (`s1_retail` or `s2_food`); or by hand (v1 review step). **Untested:** before the build test, run it on 5 businesses already known to be CAC-registered; if Claygent can't read the CAC search results, do this check by hand | More per row than Use AI |
 | Email | (a) public email on the Instagram profile (Stage 1); (b) Claygent on the **bio link first, then the Maps website** (the first one that qualifies), only when (a) is empty AND the link is not `wa.me`, `api.whatsapp.com` or `instagram.com` (those pages never hold an email). Then Clay email validation | Stage 1 + Stage 2 | About 1 Action per paid step that runs |
 | DM sent log | The person sending ticks `dm_sent` and fills `dm_sent_date` in Clay | Stage 2: manual columns, then a Clay HubSpot "create or update company + log activity" step on ticked rows | Check the Actions counter on 1 row |
 
+**One row per post:** the posts table dedupes on `post_url`. A post found on both an S1 and an S2 hashtag is kept once and passes the trigger if the caption matches **either** set's keyword list (added 2026-11-20).
+
 **One row per account:** Stage 2 sends matching posts into a `Sellers` table keyed on the Instagram handle. When an account has more than one matching post in 14 days, the **newest** post sets `item`, `order_day` and where orders go; older posts are kept in the posts table for reference only.
 
-**Stage 1 output (one row per matching post; derived from the sources above):** `hashtag`, `post_url`, `post_date` (`YYYY-MM-DD`), `caption`, `post_location`, `instagram_handle`, `display_name`, `bio`, `followers`, `is_business`, `ig_category`, `public_email`, `bio_link`, `maps_place_id`, `maps_category`, `maps_website`. Empty when not found; never guessed.
+**Stage 1 output (one row per matching post; derived from the sources above):** `hashtag` (every hashtag the post was found on, comma-separated, so a post on both sets keeps both), `post_url`, `post_date` (`YYYY-MM-DD`), `caption`, `post_location`, `instagram_handle`, `display_name`, `bio`, `followers`, `is_business`, `ig_category`, `public_email`, `bio_link`, `maps_place_id`, `maps_category`, `maps_website`. Empty when not found; never guessed.
 
 **Stage 1 is NOT BUILT YET.** Owner: NEEDS INPUT. First step: a one-off treg pull on 2 hashtags (one S1, one S2), with the price checked before each call; this doubles as the volume test. Until Stage 1 exists, the first CSV can be filled by hand from real posts.
 
 **Two tests before scaling (rules to test, no numbers yet):**
 - **Volume:** one hashtag pull per segment; count matching posts and unique accounts per 14 days. Replaces the strategy's "High" and "Medium" bands. Also check that `anyapi.instagram.hashtag.posts` returns **recent** posts (not only "top" posts) and how many posts one call returns; if it needs paging, record the real cost per 14 days.
-- **Email coverage:** among accounts that pass every gate, how many get a valid email. Decides how much of the send goes by DM (Section 7). Run it on **every matching post from the last 14 days on all 7 hashtags**, not on the 25-post build test, which gives too few sellers.
+- **Email coverage:** among accounts that pass every gate, how many get a valid email. Decides how much of the send goes by DM (Section 7). Run it on **every matching post from the last 14 days on all 7 hashtags**, not on the 25-post build test, which gives too few sellers. **Decision rule (added 2026-11-20):** compare the DM-branch accounts per week with what the daily manual DM cap (Section 7) can send in a week. If the queue is bigger, decide before launch whether to raise the cap, add a sender, or drop the oldest posts from the DM queue.
 
 **Build test:** 25 posts, to prove every Clay column works. Separate from the coverage test above.
 
@@ -81,7 +83,7 @@ Two stages, as in Workflow B: Clay can't call treg. **Stage 1** runs outside Cla
 | 3 | Where orders go | router | Regex on caption, then bio. DM if caption matches `\bdms?\b\|send a dm\|direct message\|inbox (us\|me)\|price in (the )?dm`. WhatsApp if caption matches `whatsapp\|wa\.me`, or (caption names neither) bio has a `wa.me` / `api.whatsapp.com` link or the word WhatsApp. DM only = `dm`; WhatsApp only = `whatsapp`; both = `both`; neither = `not_stated` | Formula | enum: dm / whatsapp / both / not_stated |
 | 4 | What the post is selling | context-clause | AI field `item`: short lowercase noun phrase from the caption ("ankara dresses", "small chops trays"); empty if none | AI column (same as 2) | text → `{{item}}` |
 | 5 | Order day (food only) | context-clause | AI field `order_day`: a **day name only** ("Friday") if the caption states the day orders are for; empty otherwise, including when the caption gives only a date | AI column (same as 2) | text → `{{order_day}}` |
-| 6 | Personal number in bio (U2) | context-clause | Regex on bio with spaces and dashes removed: `(\+?234\|0)[789][01]\d{8}` | Formula | boolean |
+| 6 | Personal number in bio (U2) | context-clause | Regex on bio with spaces and dashes removed: `(\+?234\|0)[789][01]\d{8}`. Catches any mobile number, including a business line; accepted 2026-11-20 because most small sellers use one phone for both, so the approved "personal phone number" line stands | Formula | boolean |
 
 All reads use the account's **newest** matching post (Section 3, "One row per account").
 
@@ -90,6 +92,8 @@ Count clusters: no routing read is a count.
 "inbox us" / "inbox me" is the common Nigerian way to say "DM us": an addition, to test on the first pull.
 
 **Review and override:** `unclear` segment or a CAC miss goes to a review view. A reviewer can bring a row back with `segment_override` (only `s1_retail` or `s2_food`) or `cac_override` (checkbox). Rows left untouched are never sent.
+
+**Open decision (NEEDS INPUT, 2026-11-20):** Instagram trading names often don't match CAC names, so most rows may land in CAC review. The current rule makes a CAC miss block sending until a reviewer ticks `cac_override`. The alternative is to send and only flag the row. Decide after the CAC test (Section 3).
 
 **Deliberately excluded reads:**
 - Likes, comments, post count: popularity, not situation. Followers are a size filter only.
@@ -130,6 +134,7 @@ Approved 2026-11-17.
 |---|---|---|
 | `{{account_key}}` | Internal, not in copy. Instagram handle, lowercase, no "@". The `Sellers` table dedupes on it | All |
 | `instagram_handle`, `maps_place_id` (HubSpot) | Internal. Shared HubSpot company properties that **both** Workflow B and Workflow C write on every business they contact (handle lowercase, no "@"; place ID as Maps returns it; empty when unknown). Suppression looks up the handle first, then the place ID | All |
+| `ello_last_outreach_date` (HubSpot) | Internal. Shared HubSpot company date property that **both** workflows write on every contact: the sequencer push date (email branch) or `dm_sent_date` (DM branch). Needed because a logged HubSpot note doesn't update "last contacted". Drives the 90-day rule. Added 2026-11-20 | All |
 | `{{instagram_handle}}` | Profile username without "@". For the manual DM queue and HubSpot; copy uses it only as written | All |
 | `{{business_name}}` | Instagram display name, cleaned by formula: emojis removed, cut at the first `\|` or `•`, or at a dash **with spaces on both sides** (` - `, ` – `), which drops taglines but keeps names like "Jay-Jay Foods"; "Ltd"/"Limited" dropped. If empty, the handle with underscores and dots turned into spaces | All |
 | `{{first_name}}` | Owner first name from the Use AI field `owner_first_name`, only if the bio names the owner; else "{{business_name}} team" | All |
@@ -154,8 +159,9 @@ Approved 2026-11-17: **email where a valid email exists; otherwise one manual In
 - Dedupe: one sequence per business per 90 days across all Ello workflows (HubSpot on Instagram handle and Maps place ID). A business in Workflow B never also gets Workflow C.
 - **Email branch:** Email 1 day 0 (new thread); Email 2 day 3 (same thread); Email 3 day 8 (same thread). Sequencer waits: 3 days, then 5 days.
 - **DM branch (no email, or validation not `valid`):** 1 short Instagram DM, sent by hand from an Ello Instagram account, never automated. Same cell routing and context clauses as the email; written by `/campaign-copy` in DM register (reads like a text, no subject, no signature). Never sent to an account that is in the email branch.
-- **Logging (both branches):** every business contacted is written to HubSpot with `instagram_handle` and `maps_place_id`. One Clay HubSpot "create or update company + log activity" step does both branches: for email, on rows the sequencer push column has run on; for DM, on rows where the sender ticked `dm_sent` and filled `dm_sent_date`. Unlogged contacts break the 90-day rule.
+- **Logging (both branches):** every business contacted is written to HubSpot with `instagram_handle`, `maps_place_id` and `ello_last_outreach_date`. One Clay HubSpot "create or update company + log activity" step does both branches: for email, on rows the sequencer push column has run on; for DM, on rows where the sender ticked `dm_sent` and filled `dm_sent_date`. Unlogged contacts break the 90-day rule.
 - Open before launch: sequencer (not chosen); the Ello Instagram account that sends DMs (NEEDS INPUT); a daily cap on manual DMs (NEEDS INPUT; keep low volume).
+- Launch check: Email 3 puts `{{business_name}}` inside a spintax option. Once the sequencer is chosen, convert the spintax to its syntax and send a test to confirm the nested variable fills.
 
 ---
 

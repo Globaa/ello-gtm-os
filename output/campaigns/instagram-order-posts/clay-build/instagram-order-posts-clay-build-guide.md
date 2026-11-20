@@ -2,6 +2,8 @@
 
 A step-by-step guide to building `output/campaigns/instagram-order-posts/workflow-spec.md` (Workflow C) in Clay. Written for someone who has never built anything in Clay. Follow the parts in order. Each step tells you **why** it exists, **what to click**, **what to type**, **how to check it worked** and **what it costs**.
 
+> **Updated 2026-11-20** to match the spec's pre-build fixes: HubSpot suppression rule and `ello_last_outreach_date`, Lagos regex, competitor handles, posts found on two hashtags, CAC test, coverage rule. See [Things the spec needs to fix](#things-the-spec-needs-to-fix).
+
 > **Don't skip the checks.** The most common Clay mistake is running a column on every row before checking it worked on 1. Every step below ends with a check. If the check fails, fix it before moving on.
 
 ---
@@ -83,13 +85,19 @@ What a finished row in **Sellers** looks like, reading left to right (made-up ex
 Tick these off **before** the session. None of them should be done live.
 
 - [ ] **Clay account** with access to the workspace you'll build in. Note the plan (Settings → Plans & billing) and how many Actions are left. See [What it costs](#what-it-costs).
-- [ ] **HubSpot connected to Clay** (Settings → Connections → HubSpot). In HubSpot, make sure two company properties exist (single-line text): `instagram_handle` and `maps_place_id`. They're shared with Workflow B (hiring a customer service rep). If Workflow B's build created them already, don't create them twice.
+- [ ] **HubSpot connected to Clay** (Settings → Connections → HubSpot). In HubSpot, make sure these company properties exist. They're shared with Workflow B (hiring a customer service rep); if Workflow B's build created them already, don't create them twice.
+  - `instagram_handle` (single-line text)
+  - `maps_place_id` (single-line text)
+  - `ello_last_outreach_date` (**date picker**). Both workflows write it on every contact. It drives the 90-day rule, because a logged HubSpot note doesn't update "last contacted".
+  - Also confirm the internal names of two built-in properties: lifecycle stage (expected `lifecyclestage`) and number of open deals (expected `hs_num_open_deals`). HubSpot → Settings → Properties → Company → click the property → the internal name is under its label. If either differs, use the real name in Part 4.2 and tell the spec owner.
+- [ ] **Competitor handles.** Look up the Instagram handles of Zana, CallAI, Obeks, NativeTalk, PressOne, Bumpa and Fresha (lowercase, no @) and add them to the spec's Section 2. Part 2.3 blocks them by exact match. You can build with an empty list, but it blocks nobody until it's filled.
+- [ ] **CAC test, before the build test.** Pick 5 Lagos businesses you already know are CAC-registered. You'll run the Part 5.3 Claygent on them first. If it can't read the CAC search results, you'll do the CAC check by hand instead.
 - [ ] **The spec is open** next to you: `output/campaigns/instagram-order-posts/workflow-spec.md`. Sections 2 (who's in and out), 3 (sources), 4 (signals), 5 (cells), 6 (variables) and the Copy section are what you're building.
 - [ ] **The Stage 1 CSV is ready.** Stage 1 isn't built yet (spec Section 3). For this first test, run one treg pull on one S1 hashtag and one S2 hashtag (check the price before each call), fetch the profiles of matching accounts, or fill the CSV by hand from 25 real posts. It must have exactly these 16 columns, in any order:
 
   `hashtag, post_url, post_date, caption, post_location, instagram_handle, display_name, bio, followers, is_business, ig_category, public_email, bio_link, maps_place_id, maps_category, maps_website`
 
-  `post_date` must be written `YYYY-MM-DD`. `hashtag` is the hashtag the post was found on (for example `lagosbaker`). Leave a cell empty when the fact wasn't found. Never guess.
+  `post_date` must be written `YYYY-MM-DD`. `hashtag` is the hashtag the post was found on (for example `lagosbaker`). **If the same post was found on more than one hashtag, write one row for it and put every hashtag in that cell, separated by commas** (for example `lagosvendor,lagosbaker`). Clay keeps only one row per post, so this is how a post found on both an S1 and an S2 hashtag keeps both. Fill `maps_place_id` only when the Maps listing links to the same Instagram handle, or its name matches the cleaned business name exactly and its address is in Lagos. Leave a cell empty when the fact wasn't found. Never guess.
 - [ ] **Test size: 25 posts.** The spec's email coverage test needs more sellers than 25 posts will give. Treat this run as a build test.
 - [ ] **For the DM branch:** the Ello Instagram account that sends DMs, and a daily cap on DMs, are still NEEDS INPUT in the spec. You can build everything without them; nobody sends a DM until they're decided.
 - [ ] **Sequencer:** not chosen yet. Part 10's email push waits until it is.
@@ -144,7 +152,7 @@ Rename each column (column header → **Edit column**):
 
 ### 1.3 Remove duplicates
 
-Table settings → **Deduplicate** → choose `Post URL`. A post found on two hashtags is kept once.
+Table settings → **Deduplicate** → choose `Post URL`. A post found on two hashtags is kept once (Stage 1 should already have merged it into one row with both hashtags; this is the safety net).
 
 **Check:** 25 rows (fewer if some were duplicates). Open 3 `Post URL`s and confirm each post's caption and date match the row.
 **Cost:** free.
@@ -168,26 +176,28 @@ Table settings → **Deduplicate** → choose `Post URL`. A post found on two ha
 
 ### 2.2 The trigger (signal 1)
 
-The keyword list depends on **which hashtag the post was found on**, not on what the business turns out to be (spec Section 2).
+The keyword list depends on **which hashtag the post was found on**, not on what the business turns out to be (spec Section 2). A post found on both an S1 and an S2 hashtag passes if its caption matches **either** list.
 
 | Column | Plain English | Formula |
 |---|---|---|
-| `Hashtag Set` | "s1" if Hashtag is lagosvendor, lagosboutique, shopinlagos or lagosthriftstore; "s2" if it is smallchopsinlagos, lagosbaker or lagosfoodvendor; blank otherwise (ignore a leading #) | `/^#?(lagosvendor\|lagosboutique\|shopinlagos\|lagosthriftstore)$/i.test(({{Hashtag}} \|\| "").trim()) ? "s1" : /^#?(smallchopsinlagos\|lagosbaker\|lagosfoodvendor)$/i.test(({{Hashtag}} \|\| "").trim()) ? "s2" : ""` |
-| `Keyword Match?` | For s1 posts, true if the caption says dm to order, send a dm, whatsapp to order, price in dm (or price in the dm) or dm for price. For s2 posts, true if it says orders open (or order are open, orders now open), pre-order or preorder, taking orders, today's menu, this week's menu, weekly menu, dm to order or whatsapp to order | `{{Hashtag Set}} === "s1" ? /\b(dm to order\|send a dm\|whatsapp to order\|price in (the )?dm\|dm for price)\b/i.test({{Caption}} \|\| "") : {{Hashtag Set}} === "s2" ? /\b(orders? (are )?(now )?open\|pre-?orders?\|taking orders\|(today'?s\|this week'?s\|weekly) menu\|dm to order\|whatsapp to order)\b/i.test({{Caption}} \|\| "") : false` |
+| `Hashtag Set` | Split Hashtag on commas (ignore a leading # and spaces). "both" if it includes an S1 tag (lagosvendor, lagosboutique, shopinlagos, lagosthriftstore) and an S2 tag (smallchopsinlagos, lagosbaker, lagosfoodvendor); "s1" if only S1; "s2" if only S2; blank otherwise | `(() => { const t = ({{Hashtag}} \|\| "").split(",").map(x => x.trim().replace(/^#/, "").toLowerCase()); const a = t.some(x => ["lagosvendor","lagosboutique","shopinlagos","lagosthriftstore"].includes(x)); const b = t.some(x => ["smallchopsinlagos","lagosbaker","lagosfoodvendor"].includes(x)); return a && b ? "both" : a ? "s1" : b ? "s2" : ""; })()` |
+| `Keyword Match?` | S1 list: dm to order, send a dm, whatsapp to order, price in dm (or price in the dm), dm for price. S2 list: orders open (or orders are open, orders now open), pre-order or preorder, taking orders, today's menu, this week's menu, weekly menu, dm to order, whatsapp to order. True if Hashtag Set is s1 and the caption matches the S1 list; or s2 and it matches the S2 list; or both and it matches either | `(() => { const c = {{Caption}} \|\| ""; const k1 = /\b(dm to order\|send a dm\|whatsapp to order\|price in (the )?dm\|dm for price)\b/i.test(c); const k2 = /\b(orders? (are )?(now )?open\|pre-?orders?\|taking orders\|(today'?s\|this week'?s\|weekly) menu\|dm to order\|whatsapp to order)\b/i.test(c); const s = {{Hashtag Set}}; return s === "s1" ? k1 : s === "s2" ? k2 : s === "both" ? (k1 \|\| k2) : false; })()` |
 | `Days Since Post` | Whole days between Post Date and today; blank if there's no date | `{{Post Date}} ? Math.floor((Date.now() - new Date({{Post Date}}).getTime()) / 86400000) : null` |
 
-**Check:** a #lagosvendor post saying "Send a DM to order" → true. A #lagosbaker post saying "Pre-orders open for Friday" → true. A #lagosvendor post saying only "orders open" → false (that phrase is only on the food list).
+**Check:** a #lagosvendor post saying "Send a DM to order" → true. A #lagosbaker post saying "Pre-orders open for Friday" → true. A #lagosvendor post saying only "orders open" → false (that phrase is only on the food list). The same post with Hashtag `lagosvendor,lagosbaker` → `Hashtag Set` = both, `Keyword Match?` = true. If Clay rejects the `(() => { … })()` form, paste the plain English into the AI helper and check these 4 cases.
 
 ### 2.3 Lagos and competitors (spec Section 2)
 
 | Column | Plain English | Formula |
 |---|---|---|
-| `In Lagos?` | True if the Bio or Post Location names Lagos or one of the Lagos areas in the spec's list | `/lagos\|lekki\|ikeja\|yaba\|surulere\|ajah\|ikoyi\|victoria island\|\bvi\b\|festac\|gbagada\|ikorodu\|magodo\|ogba\|maryland\|oshodi\|egbeda\|ojodu\|ilupeju\|isolo\|apapa\|sangotedo\|chevron/i.test(({{Bio}} \|\| "") + " " + ({{Post Location}} \|\| ""))` |
-| `Competitor?` | True if the Handle or Business Name names a competitor: Zana, CallAI, Obeks, NativeTalk, PressOne, Bumpa or Fresha | `/\b(zana\|callai\|obeks\|nativetalk\|pressone\|bumpa\|fresha)\b/i.test({{Handle}} + " " + {{Business Name}})` |
+| `In Lagos?` | True if the Bio or Post Location names Lagos or one of the Lagos areas in the spec's list | `/lagos\|lekki\|ikeja\|yaba\|surulere\|ajah\|ikoyi\|victoria island\|festac\|gbagada\|ikorodu\|magodo\|ogba\|oshodi\|egbeda\|ojodu\|ilupeju\|isolo\|apapa\|sangotedo\|chevron/i.test(({{Bio}} \|\| "") + " " + ({{Post Location}} \|\| ""))` |
+| `Competitor?` | True if the Handle is exactly one of the competitors' Instagram handles in the spec's Section 2 list | `["handle1", "handle2"].includes({{Handle}})`: replace the placeholders with the real handles from the spec, lowercase, no @ |
+
+> **Why these changed (2026-11-20):** `maryland` (also a US state) and `vi` (any standalone "vi") were dropped from the Lagos list; "Maryland, Lagos" still passes on "lagos". The competitor check is an exact handle match, because a name match on "zana" would block unrelated sellers. Until the spec lists the handles, leave the list empty: `[].includes({{Handle}})`.
 
 > **Existing Ello users** are excluded in the spec but **not active in v1**: it turns on when the Ello team sends a list of sign-up handles. When it arrives, upload it as an `Exclusions` table with a `Handle` column and add a lookup here.
 
-**Check:** read 5 rows where `In Lagos?` is false. Is any of them really in Lagos? If an area is missing, add it to the spec's list first, then here.
+**Check:** read 5 rows where `In Lagos?` is false. Is any of them really in Lagos? If an area is missing, add it to the spec's list first, then here. Then read 5 rows where it's true and make sure none is outside Lagos.
 
 ### 2.4 Where orders go (signal 3, a router) and personal number (signal 6)
 
@@ -266,8 +276,18 @@ Back in `Posts`:
 
 For each: **+ Add column** → search **HubSpot** → **Lookup company** (may be called "Find object" or "Lookup object"; choose the Company object) → set the property and value → add the run condition.
 
+In each lookup, ask for these properties back: `lifecyclestage`, `hs_num_open_deals`, `ello_last_outreach_date` (or the real internal names you confirmed in Before you start).
+
 1. Run each on **1 row** first. An empty cell means HubSpot has no such company, which is expected for most rows.
-2. Formula `In HubSpot?`. Plain English: *"True if either HubSpot lookup found a company that is a customer, has an open deal, or was last contacted in the last 90 days."* Let the AI helper write it from a cell that has a match (add a test company in HubSpot with a known `instagram_handle` if none match yet). Delete the test company afterwards.
+2. Formula `In HubSpot?`. Plain English: *"True if either HubSpot lookup found a company whose lifecycle stage is customer, OR whose number of open deals is above 0, OR whose ello_last_outreach_date is within the last 90 days."* This is the spec's suppression rule (Section 2). A starting formula:
+```javascript
+[{{HubSpot by Handle}}, {{HubSpot by Place ID}}].some(c => !!c && (
+  c.lifecyclestage === "customer" ||
+  Number(c.hs_num_open_deals || 0) > 0 ||
+  (!!c.ello_last_outreach_date && (Date.now() - new Date(c.ello_last_outreach_date).getTime()) / 86400000 <= 90)
+))
+```
+   Clay may nest the properties differently (for example under `properties`). Open a cell that has a match and adjust the paths, or let the AI helper rewrite it from the plain English. To get a match, add a test company in HubSpot with a known `instagram_handle` and test it three times: as a customer, with an open deal, and with `ello_last_outreach_date` set to last week. Each time `In HubSpot?` must be true. Set the date to 100 days ago with no deal and a non-customer stage: it must be false. Delete the test company afterwards.
 
 **Cost:** check the Actions counter before and after the 1-row run. Some plans charge per CRM lookup.
 
@@ -359,8 +379,10 @@ Two plain columns first, for a reviewer to fill in:
    > *4. evidence: one line on what you saw. Don't guess.*
 3. Output format: **JSON**: `cac_status` (one of `found`, `not_found`, `unclear`), `registered_name`, `registration_number`, `evidence`.
 4. **Run condition:** `{{Pass Seller Gates?}} === true && {{In Segment?}} === true && {{Seller OK?}} === true`
-5. Run on **2 or 3 sellers you've checked yourself** on the CAC site. If Claygent can't use the site, **stop**: delete the column and check by hand, ticking `CAC Override`.
-6. Then run on the rest.
+5. **First, the CAC test (spec Section 3):** add the 5 known CAC-registered businesses from Before you start as test rows (or temporarily point the prompt at their names) and run on those 5. If Claygent doesn't return `found` for them, it can't read the CAC site: **stop**, delete the column and check by hand, ticking `CAC Override`. Delete the test rows afterwards.
+6. If the test passes, run on **2 or 3 real sellers** you've checked yourself, then on the rest.
+
+> **Open decision (spec Section 4):** Instagram trading names often don't match CAC names, so many sellers may land in `Review: CAC`. For now a CAC miss blocks the seller until a reviewer ticks `CAC Override` (that's what `Ready to Contact?` in Part 6 does). If the team decides after the test to send and only flag, remove `{{CAC OK?}} === true` from `Ready to Contact?`.
 
 | Column | Plain English | Formula |
 |---|---|---|
@@ -431,7 +453,7 @@ Then validate:
 |---|---|---|
 | `Branch` | Blank if Ready to Contact is false. Otherwise "email" if there is an Email and Email Status is valid, else "dm" | `!{{Ready to Contact?}} ? "" : (!!{{Email}} && {{Email Status}} === "valid") ? "email" : "dm"` |
 
-**Check:** count `Branch` = email and `Branch` = dm. **Write both numbers down**: that's the start of the spec's email coverage test, and it tells you how much manual DM work this list makes.
+**Check:** count `Branch` = email and `Branch` = dm. **Write both numbers down**: that's the start of the spec's email coverage test, and it tells you how much manual DM work this list makes. The full coverage test (every matching post from the last 14 days on all 7 hashtags) uses the spec's decision rule: if the DM-branch sellers per week are more than the daily DM cap can send in a week, the team decides before launch whether to raise the cap, add a sender, or drop the oldest posts from the DM queue.
 **Cost:** Claygent more per row than Use AI, only where no profile email exists and a usable site does. Validation about **1 Action per email** (plus Data Credits if Clay pays the provider).
 
 ---
@@ -704,12 +726,13 @@ Ello
 
 ### 10.3 Log every contact in HubSpot
 
-**Why:** the 90-day rule only works if every email and every DM is in HubSpot with both shared keys (spec Section 7).
+**Why:** the 90-day rule only works if every email and every DM is in HubSpot with both shared keys and the outreach date (spec Sections 6 and 7).
 
-1. **+ Add column** → search **HubSpot** → **Create or update company** (may be called "Upsert object"). Map `instagram_handle` → `{{Handle}}`, `maps_place_id` → `{{Maps Place ID}}`, company name → `{{Business Name}}`.
-2. Add a note or activity saying which branch and the date (the action may be called "Create engagement" or "Create note"; if your Clay HubSpot actions don't include it, set a company property such as last contact date instead).
-3. **Run condition:** `({{Branch}} === "email" && !!{{Add lead to campaign}}) || {{DM Sent}} === true` (rename the first part to whatever your sequencer push column is called).
-4. On launch day, run on 1 row and find the company in HubSpot before running the rest.
+1. Formula `Outreach Date`. Plain English: *"DM Sent Date if DM Sent is ticked; otherwise today's date as YYYY-MM-DD."* Formula: `{{DM Sent}} === true ? {{DM Sent Date}} : new Date().toISOString().slice(0, 10)`
+2. **+ Add column** → search **HubSpot** → **Create or update company** (may be called "Upsert object"). Map `instagram_handle` → `{{Handle}}`, `maps_place_id` → `{{Maps Place ID}}`, company name → `{{Business Name}}`, `ello_last_outreach_date` → `{{Outreach Date}}`. **This date is what suppression reads**, so it must be mapped.
+3. Optional: add a note saying which branch (the action may be called "Create engagement" or "Create note"). A note alone doesn't update "last contacted", which is why step 2 writes the date.
+4. **Run condition:** `({{Branch}} === "email" && !!{{Add lead to campaign}}) || ({{DM Sent}} === true && !!{{DM Sent Date}})` (rename the first part to whatever your sequencer push column is called).
+5. On launch day, run on 1 row, find the company in HubSpot and check `ello_last_outreach_date` is filled before running the rest.
 
 **Cost:** depends on your plan. Check the Actions counter on 1 row.
 
@@ -741,6 +764,9 @@ Watch the Actions counter before and after each paid step, and write the numbers
 
 ## Final checklist
 
+- [ ] HubSpot has `instagram_handle`, `maps_place_id` and `ello_last_outreach_date`, and the lifecycle stage and open-deals internal names are confirmed.
+- [ ] `In HubSpot?` passed the four test-company cases (customer, open deal, contacted last week, 100 days ago).
+- [ ] The CAC Claygent returned `found` for the 5 known registered businesses, or the CAC check is done by hand.
 - [ ] Auto-run is **off** on both tables.
 - [ ] Every paid column has a **run condition**.
 - [ ] Every paid column was tested on **1 row** (AI columns on 2 or 3 you can judge), and the cell was read before running more.
@@ -769,6 +795,8 @@ Watch the Actions counter before and after each paid step, and write the numbers
 | A column ran on every row and spent Actions | Auto-run was on, or there was no run condition | Turn auto-run off; add the run condition; note the spend |
 | CAC Check is always `unclear` | The CAC site blocks automated browsing | Delete the column; check by hand and tick `CAC Override` |
 | An email or DM line is blank on a ready row | `Segment Override` has a typo, or `Item` has stray spaces | Fix the override to exactly `s1_retail` or `s2_food`; `Item` is trimmed by its formula |
+| `In HubSpot?` is never true, even for the test company | The lookup didn't return `lifecyclestage`, `hs_num_open_deals` or `ello_last_outreach_date`, or the formula's paths don't match how Clay nests them | Add the properties to the lookup's output; open a matched cell and fix the paths |
+| A post on two hashtags fails `Keyword Match?` | Stage 1 wrote two rows instead of one row with both hashtags, and Clay's dedupe dropped one | Merge them in the CSV (`lagosvendor,lagosbaker`) and re-import |
 | Email status "catch-all" or "unknown" | The mail server accepts everything or didn't answer | The row goes to the DM branch by design. Don't email it |
 
 ---
@@ -783,3 +811,11 @@ Found while writing this guide. **All 6 were written into the spec on 2026-11-17
 4. **Section 3, the coverage test needs more than 25 posts.** Like Workflow B: say how many posts to import for the coverage test (for example every matching post from the last 14 days on all 7 hashtags), separate from the 25-post build test.
 5. **Section 7, logging the email branch.** The spec says email contacts are logged "at the sequencer push". The guide logs them with the same HubSpot step as DMs (Part 10.3), after the push. Say which column does it.
 6. **Section 2, the `is_business` flag.** Whether treg's profile call returns it is still unconfirmed. If it doesn't, every account relies on the AI's `is_seller` field. Confirm it in the Stage 1 test and note the result.
+
+**Spec fixes of 2026-11-20 (approved by Fredrick), now built into this guide:**
+- HubSpot suppression rule and the shared `ello_last_outreach_date` property: Before you start, Part 4.2, Part 10.3, checklist.
+- Lagos regex without `maryland` and `vi`; competitor check by exact handle (handles still NEEDS INPUT in the spec): Part 2.3.
+- Posts found on two hashtags pass on either keyword list: Before you start (one row, comma-separated hashtags), Part 2.2. The spec's Stage 1 output now says the same.
+- Maps match rule: Before you start.
+- CAC test on 5 known businesses and the open CAC decision: Before you start, Part 5.3.
+- Coverage-test decision rule: Part 7.3.
