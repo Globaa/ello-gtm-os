@@ -2,7 +2,7 @@
 
 A step-by-step guide to building `output/campaigns/instagram-order-posts/workflow-spec.md` (Workflow C) in Clay. Written for someone who has never built anything in Clay. Follow the parts in order. Each step tells you **why** it exists, **what to click**, **what to type**, **how to check it worked** and **what it costs**.
 
-> **Updated 2026-11-20** to match the spec's pre-build fixes: HubSpot suppression rule and `ello_last_outreach_date`, Lagos regex, competitor handles, posts found on two hashtags, CAC test, coverage rule. See [Things the spec needs to fix](#things-the-spec-needs-to-fix).
+> **Updated 2026-11-20** to add the `Exclusions` table (Part 2.3), and to match the spec's pre-build fixes: HubSpot suppression rule and `ello_last_outreach_date`, Lagos regex, competitor handles, posts found on two hashtags, CAC test, coverage rule. See [Things the spec needs to fix](#things-the-spec-needs-to-fix).
 
 > **Don't skip the checks.** The most common Clay mistake is running a column on every row before checking it worked on 1. Every step below ends with a check. If the check fails, fix it before moving on.
 
@@ -37,7 +37,7 @@ The spec says: find **Lagos retail sellers and food businesses that posted on In
 
 The posts are collected **outside Clay** (spec Section 3, "Stage 1"), because Clay can't call treg. You import that export, and Clay does everything after it.
 
-You will build **2 tables** inside **1 workbook**, fed by **1 CSV** you import:
+You will build **2 tables** inside **1 workbook**, fed by **1 CSV** you import, plus a small `Exclusions` reference table from `exclusions.csv` (the competitors to block):
 
 ![How the Instagram orders workflow moves through Clay](instagram-order-posts-clay-flow.png)
 
@@ -90,7 +90,7 @@ Tick these off **before** the session. None of them should be done live.
   - `maps_place_id` (single-line text)
   - `ello_last_outreach_date` (**date picker**). Both workflows write it on every contact. It drives the 90-day rule, because a logged HubSpot note doesn't update "last contacted".
   - Also confirm the internal names of two built-in properties: lifecycle stage (expected `lifecyclestage`) and number of open deals (expected `hs_num_open_deals`). HubSpot → Settings → Properties → Company → click the property → the internal name is under its label. If either differs, use the real name in Part 4.2 and tell the spec owner.
-- [ ] **Competitor handles.** Four are in the spec's Section 2 and in Part 2.3 (CallAI's parent, PressOne, Bumpa, Fresha). Zana, Obeks and NativeTalk have no Instagram linked on their sites; if you find their accounts, add them to the spec first, then to Part 2.3.
+- [ ] **`exclusions.csv`** from this folder (`output/campaigns/instagram-order-posts/clay-build/`): 7 competitors with domain, Instagram handle and source. Four handles are known (CallAI's parent, PressOne, Bumpa, Fresha). Zana, Obeks and NativeTalk have no Instagram linked on their sites; if you find their accounts, add them to the spec first, then to this CSV. You import it in Part 2.3. Don't add guessed domains or handles.
 - [ ] **CAC test, before the build test.** Pick 5 Lagos businesses you already know are CAC-registered. You'll run the Part 5.3 Claygent on them first. If it can't read the CAC search results, you'll do the CAC check by hand instead.
 - [ ] **The spec is open** next to you: `output/campaigns/instagram-order-posts/workflow-spec.md`. Sections 2 (who's in and out), 3 (sources), 4 (signals), 5 (cells), 6 (variables) and the Copy section are what you're building.
 - [ ] **The Stage 1 CSV is ready.** Stage 1 isn't built yet (spec Section 3). For this first test, run one treg pull on one S1 hashtag and one S2 hashtag (check the price before each call), fetch the profiles of matching accounts, or fill the CSV by hand from 25 real posts. It must have exactly these 16 columns, in any order:
@@ -188,16 +188,41 @@ The keyword list depends on **which hashtag the post was found on**, not on what
 
 ### 2.3 Lagos and competitors (spec Section 2)
 
+**First, the `Exclusions` table.** It holds the competitors to block, so the list lives in one place instead of inside a formula.
+
+1. **+ Add table** → **Import CSV** → upload `exclusions.csv` (Before you start). Name the table `Exclusions`. Turn **Auto-run off**.
+2. Keep the 6 columns as they are: `Company Name`, `Legal Entity`, `Domain`, `Instagram Handle`, `Type`, `Source`. Domains are written plain (`getbumpa.com`, no `https://` or `www.`) and handles lowercase without "@", so they match the formulas below.
+3. **Check:** 7 rows, all with a domain; 4 with an Instagram handle.
+
+Then, back in `Posts`, two free formulas that turn the post's links into the same shape as the `Domain` column:
+
+| Column | Plain English | Formula |
+|---|---|---|
+| `Bio Link Domain` | The Bio Link without https://, www. or anything after the first /, in lowercase; blank if there's no link | `({{Bio Link}} \|\| "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[\/?#]/)[0]` |
+| `Maps Domain` | The same for Maps Website | `({{Maps Website}} \|\| "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[\/?#]/)[0]` |
+
+Then three lookups (free). For each: **+ Add column** → **Lookup single row in other table** (may be called "Lookup row") → table `Exclusions` → match the column below → add the run condition.
+
+| Column | Match `Exclusions` column | To this value | Run condition |
+|---|---|---|---|
+| `Excluded by Handle` | `Instagram Handle` | `{{Handle}}` | `!!{{Handle}}` |
+| `Excluded by Bio Domain` | `Domain` | `{{Bio Link Domain}}` | `!!{{Bio Link Domain}}` |
+| `Excluded by Maps Domain` | `Domain` | `{{Maps Domain}}` | `!!{{Maps Domain}}` |
+
+> **Why the run conditions matter:** three competitors have no Instagram handle in the CSV. A lookup run on a blank value can match those blank rows and block a seller by mistake. Only run each lookup when its value is filled.
+
+Now the two checks:
+
 | Column | Plain English | Formula |
 |---|---|---|
 | `In Lagos?` | True if the Bio or Post Location names Lagos or one of the Lagos areas in the spec's list | `/lagos\|lekki\|ikeja\|yaba\|surulere\|ajah\|ikoyi\|victoria island\|festac\|gbagada\|ikorodu\|magodo\|ogba\|oshodi\|egbeda\|ojodu\|ilupeju\|isolo\|apapa\|sangotedo\|chevron/i.test(({{Bio}} \|\| "") + " " + ({{Post Location}} \|\| ""))` |
-| `Competitor?` | True if the Handle is exactly one of the competitors' Instagram handles in the spec's Section 2 list | `["cherrybrooksofficial", "pressone.africa", "getbumpa", "fresha"].includes({{Handle}})`. Add Zana, Obeks and NativeTalk when the spec lists them (lowercase, no @) |
+| `Competitor?` | True if any of the three Exclusions lookups found a row | `!!{{Excluded by Handle}} \|\| !!{{Excluded by Bio Domain}} \|\| !!{{Excluded by Maps Domain}}` |
 
-> **Why these changed (2026-11-20):** `maryland` (also a US state) and `vi` (any standalone "vi") were dropped from the Lagos list; "Maryland, Lagos" still passes on "lagos". The competitor check is an exact handle match, because a name match on "zana" would block unrelated sellers. Four handles are confirmed (2026-11-20); Zana, Obeks and NativeTalk are still NEEDS INPUT in the spec.
+> **Why these changed (2026-11-20):** `maryland` (also a US state) and `vi` (any standalone "vi") were dropped from the Lagos list; "Maryland, Lagos" still passes on "lagos". The competitor check is an exact match on handle or domain against the `Exclusions` table, never a match on names ("zana" would block unrelated sellers). Four handles are confirmed (2026-11-20); Zana, Obeks and NativeTalk are still NEEDS INPUT in the spec, and are caught by domain meanwhile.
 
-> **Existing Ello users** are excluded in the spec but **not active in v1**: it turns on when the Ello team sends a list of sign-up handles. When it arrives, upload it as an `Exclusions` table with a `Handle` column and add a lookup here.
+> **Existing Ello users** are excluded in the spec but **not active in v1**: it turns on when the Ello team sends a list of sign-up handles. When it arrives, add those accounts to the `Exclusions` table with `Type` = `ello_user` and their Instagram handle (and domain where known); the lookups above block them too.
 
-**Check:** read 5 rows where `In Lagos?` is false. Is any of them really in Lagos? If an area is missing, add it to the spec's list first, then here. Then read 5 rows where it's true and make sure none is outside Lagos.
+**Check:** read 5 rows where `In Lagos?` is false. Is any of them really in Lagos? If an area is missing, add it to the spec's list first, then here. Then read 5 rows where it's true and make sure none is outside Lagos. For `Competitor?`, add one test row to `Posts` with Instagram Handle `@GetBumpa` and one with Bio Link `https://www.fresha.com/`: both must show `Competitor?` true. A row with no handle and no links: all three lookups stay empty (they didn't run). Delete the test rows.
 
 ### 2.4 Where orders go (signal 3, a router) and personal number (signal 6)
 
@@ -740,7 +765,7 @@ Ello
 
 ## What it costs
 
-Free: the CSV import, formulas, lookups inside Clay, Send table data, views.
+Free: the CSV imports (posts and `exclusions.csv`), formulas, lookups inside Clay (including the three `Exclusions` lookups), Send table data, views.
 
 Paid, and only on rows that passed every check before it:
 
@@ -770,6 +795,7 @@ Watch the Actions counter before and after each paid step, and write the numbers
 - [ ] Auto-run is **off** on both tables.
 - [ ] Every paid column has a **run condition**.
 - [ ] Every paid column was tested on **1 row** (AI columns on 2 or 3 you can judge), and the cell was read before running more.
+- [ ] `Exclusions` has 7 rows; the `@GetBumpa` and `fresha.com` test rows were blocked, and the Exclusions lookups never ran on a blank value.
 - [ ] `Sellers` has no duplicate handles, and the newest post won.
 - [ ] No competitor or HubSpot-suppressed seller is `Ready to Contact?`.
 - [ ] No `unclear`, `s3_salon`, `clinic`, `other` or non-seller account has a cell.
@@ -796,6 +822,7 @@ Watch the Actions counter before and after each paid step, and write the numbers
 | CAC Check is always `unclear` | The CAC site blocks automated browsing | Delete the column; check by hand and tick `CAC Override` |
 | An email or DM line is blank on a ready row | `Segment Override` has a typo, or `Item` has stray spaces | Fix the override to exactly `s1_retail` or `s2_food`; `Item` is trimmed by its formula |
 | `In HubSpot?` is never true, even for the test company | The lookup didn't return `lifecyclestage`, `hs_num_open_deals` or `ello_last_outreach_date`, or the formula's paths don't match how Clay nests them | Add the properties to the lookup's output; open a matched cell and fix the paths |
+| A seller with no handle or links is marked `Competitor?` | An Exclusions lookup ran on a blank value and matched a competitor row with a blank handle | Add the run conditions (`!!{{Handle}}`, `!!{{Bio Link Domain}}`, `!!{{Maps Domain}}`), clear the lookup cells and re-run |
 | A post on two hashtags fails `Keyword Match?` | Stage 1 wrote two rows instead of one row with both hashtags, and Clay's dedupe dropped one | Merge them in the CSV (`lagosvendor,lagosbaker`) and re-import |
 | Email status "catch-all" or "unknown" | The mail server accepts everything or didn't answer | The row goes to the DM branch by design. Don't email it |
 
@@ -819,3 +846,5 @@ Found while writing this guide. **All 6 were written into the spec on 2026-11-17
 - Maps match rule: Before you start.
 - CAC test on 5 known businesses and the open CAC decision: Before you start, Part 5.3.
 - Coverage-test decision rule: Part 7.3.
+
+**Added 2026-11-20 (approved by Fredrick): the `Exclusions` table.** `exclusions.csv` (7 competitors, domain and Instagram handle where known, with sources) is imported as a reference table and checked with three lookups in Part 2.3 (handle, bio link domain, Maps domain). It replaces the handle list that was written into the `Competitor?` formula, and adds a domain match, so Zana, Obeks and NativeTalk are caught by domain even without a handle. Spec Section 2 still describes the check as a formula on a handle list; **suggested spec fix:** name `exclusions.csv` as the competitor list and add the domain match.

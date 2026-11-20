@@ -2,29 +2,164 @@
   "title": "How the Ello hiring workflow moves through Clay",
   "subtitle": "Each row is a table. Follow the numbers left to right. Paid steps only run on rows that passed every step before them.",
   "lanes": [
-    {"id": "stage1", "name": "Stage 1 export", "note": "built outside Clay\n(crawl4ai + treg via n8n)", "dashed": true},
-    {"id": "posts", "name": "Job Posts", "note": "one row per job post"},
-    {"id": "biz", "name": "Businesses", "note": "one row per business.\nThe main table.", "main": true}
+    {
+      "id": "stage1",
+      "name": "Stage 1 export",
+      "note": "built outside Clay\n(crawl4ai + treg via n8n)",
+      "dashed": true
+    },
+    {
+      "id": "excl",
+      "name": "Exclusions",
+      "note": "reference table\nfrom exclusions.csv",
+      "dashed": true
+    },
+    {
+      "id": "posts",
+      "name": "Job Posts",
+      "note": "one row per job post"
+    },
+    {
+      "id": "biz",
+      "name": "Businesses",
+      "note": "one row per business.\nThe main table.",
+      "main": true
+    }
   ],
   "steps": [
-    {"id": "x", "n": "0", "lane": "stage1", "col": 1, "title": "Weekly job-post CSV", "text": "Jobberman Lagos posts with dates, Maps and Instagram facts", "cost": null},
-    {"id": "s1", "n": "1", "lane": "posts", "col": 2, "title": "Import job posts", "text": "Upload the CSV. Start with 25 rows", "cost": "free"},
-    {"id": "s2", "n": "2", "lane": "posts", "col": 3, "title": "Free post checks", "text": "Right title, Lagos, 30 days, no recruiters or competitors. Calls or chat?", "cost": "free"},
-    {"id": "s3", "n": "3", "lane": "biz", "col": 4, "title": "Send each business once", "text": "Deduped on Account Key, newest post wins", "cost": "free"},
-    {"id": "s4", "n": "4", "lane": "biz", "col": 5, "title": "Business gates", "text": "1 to 3 open roles, under 50k followers, not in HubSpot", "cost": "paid"},
-    {"id": "s5", "n": "5", "lane": "biz", "col": 6, "title": "Type and CAC (AI)", "text": "Retail, food or salon? Role title, owner name. Registered with CAC?", "cost": "paid"},
-    {"id": "s6", "n": "6", "lane": "biz", "col": 7, "title": "Route to a cell", "text": "Business type x calls or chat = 12 cells. Unclear goes to review", "cost": "free", "highlight": true},
-    {"id": "s7", "n": "7", "lane": "biz", "col": 8, "title": "Find and check email", "text": "Job post, Instagram, then website (AI). Validate every one", "cost": "paid"},
-    {"id": "s8", "n": "8", "lane": "biz", "col": 9, "title": "Copy, send, log", "text": "4 approved lines as formulas. Paused campaign, HubSpot log", "cost": "paid"}
+    {
+      "id": "x",
+      "n": "0",
+      "lane": "stage1",
+      "col": 1,
+      "title": "Weekly job-post CSV",
+      "text": "Jobberman Lagos posts with dates, Maps and Instagram facts",
+      "cost": null
+    },
+    {
+      "id": "ex",
+      "n": "0",
+      "lane": "excl",
+      "col": 3,
+      "title": "Upload exclusions",
+      "text": "7 competitors: domain and Instagram handle",
+      "cost": "free"
+    },
+    {
+      "id": "s1",
+      "n": "1",
+      "lane": "posts",
+      "col": 2,
+      "title": "Import job posts",
+      "text": "Upload the CSV. Start with 25 rows",
+      "cost": "free"
+    },
+    {
+      "id": "s2",
+      "n": "2",
+      "lane": "posts",
+      "col": 3,
+      "title": "Free post checks",
+      "text": "Right title, Lagos, 30 days, no recruiters or competitors. Calls or chat?",
+      "cost": "free"
+    },
+    {
+      "id": "s3",
+      "n": "3",
+      "lane": "biz",
+      "col": 4,
+      "title": "Send each business once",
+      "text": "Deduped on Account Key, newest post wins",
+      "cost": "free"
+    },
+    {
+      "id": "s4",
+      "n": "4",
+      "lane": "biz",
+      "col": 5,
+      "title": "Business gates",
+      "text": "1 to 3 open roles, under 50k followers, not in HubSpot",
+      "cost": "paid"
+    },
+    {
+      "id": "s5",
+      "n": "5",
+      "lane": "biz",
+      "col": 6,
+      "title": "Type and CAC (AI)",
+      "text": "Retail, food or salon? Role title, owner name. Registered with CAC?",
+      "cost": "paid"
+    },
+    {
+      "id": "s6",
+      "n": "6",
+      "lane": "biz",
+      "col": 7,
+      "title": "Route to a cell",
+      "text": "Business type x calls or chat = 12 cells. Unclear goes to review",
+      "cost": "free",
+      "highlight": true
+    },
+    {
+      "id": "s7",
+      "n": "7",
+      "lane": "biz",
+      "col": 8,
+      "title": "Find and check email",
+      "text": "Job post, Instagram, then website (AI). Validate every one",
+      "cost": "paid"
+    },
+    {
+      "id": "s8",
+      "n": "8",
+      "lane": "biz",
+      "col": 9,
+      "title": "Copy, send, log",
+      "text": "4 approved lines as formulas. Paused campaign, HubSpot log",
+      "cost": "paid"
+    }
   ],
   "arrows": [
-    {"from": "x", "to": "s1", "label": "you import it", "dashed": true},
-    {"from": "s1", "to": "s2"},
-    {"from": "s2", "to": "s3", "label": "only posts that\npassed every check"},
-    {"from": "s3", "to": "s4"},
-    {"from": "s4", "to": "s5"},
-    {"from": "s5", "to": "s6"},
-    {"from": "s6", "to": "s7"},
-    {"from": "s7", "to": "s8"}
+    {
+      "from": "x",
+      "to": "s1",
+      "label": "import",
+      "dashed": true
+    },
+    {
+      "from": "ex",
+      "to": "s2",
+      "label": "checked against",
+      "dashed": true
+    },
+    {
+      "from": "s1",
+      "to": "s2"
+    },
+    {
+      "from": "s2",
+      "to": "s3",
+      "label": "only posts that\npassed every check"
+    },
+    {
+      "from": "s3",
+      "to": "s4"
+    },
+    {
+      "from": "s4",
+      "to": "s5"
+    },
+    {
+      "from": "s5",
+      "to": "s6"
+    },
+    {
+      "from": "s6",
+      "to": "s7"
+    },
+    {
+      "from": "s7",
+      "to": "s8"
+    }
   ]
 }

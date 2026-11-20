@@ -2,7 +2,7 @@
 
 A step-by-step guide to building `output/campaigns/hiring-customer-service-rep/workflow-spec.md` in Clay. Written for someone who has never built anything in Clay. Follow the parts in order. Each step tells you **why** it exists, **what to click**, **what to type**, **how to check it worked** and **what it costs**.
 
-> **Updated 2026-11-20** to match the spec's pre-build fixes: HubSpot suppression rule and `ello_last_outreach_date`, owner name from the AI column (`instagram_bio` replaces `owner_name_hint`), Instagram search by name in Stage 1, business-name cleaning, CAC test, `No email` view. See [Things the spec needs to fix](#things-the-spec-needs-to-fix).
+> **Updated 2026-11-20** to add the `Exclusions` table (Part 2.3), and to match the spec's pre-build fixes: HubSpot suppression rule and `ello_last_outreach_date`, owner name from the AI column (`instagram_bio` replaces `owner_name_hint`), Instagram search by name in Stage 1, business-name cleaning, CAC test, `No email` view. See [Things the spec needs to fix](#things-the-spec-needs-to-fix).
 
 > **Don't skip the checks.** The most common Clay mistake is running a column on every row before checking it worked on 1. Every step below ends with a check. If the check fails, fix it before moving on.
 
@@ -37,7 +37,7 @@ The spec says: find **Lagos businesses that posted a job in the last 30 days for
 
 The job posts are collected **outside Clay** (spec Section 3a, "Stage 1"), because Clay can't read Jobberman or call treg. You import that export, and Clay does everything after it.
 
-You will build **2 tables** inside **1 workbook**, fed by **1 CSV** you import:
+You will build **2 tables** inside **1 workbook**, fed by **1 CSV** you import, plus a small `Exclusions` reference table from `exclusions.csv` (the competitors to block):
 
 ![How the Ello hiring workflow moves through Clay](hiring-customer-service-rep-clay-flow.png)
 
@@ -98,6 +98,7 @@ Tick these off **before** the session. None of them should be done live.
   `posted_date` must be a real date written `YYYY-MM-DD` (turn "3 days ago" into a date using the day you crawled). `instagram_bio` is the account's bio text, copied as it is (the AI reads the owner's name from it in Part 5). Leave a cell empty when the fact wasn't found. Never guess.
 
   **Finding the Instagram account:** first look for a link on the Maps website or the job page. If there's none, search Instagram for the business name (spec Section 3: a treg Instagram search, endpoint and price still to pick, so check the price before the first call; by hand for the test is fine). Keep a result only when its display name matches the business name and its bio mentions Lagos or a Lagos area. Otherwise leave the Instagram columns empty. This matters: the handle is how Workflow C recognises a business this campaign already contacted.
+- [ ] **`exclusions.csv`** from this folder (`output/campaigns/hiring-customer-service-rep/clay-build/`): 7 competitors with domain, Instagram handle (where known) and source. You import it in Part 2.3. Don't add guessed domains or handles to it.
 - [ ] **Test size: 25 job posts.** You can import more later. Note: the spec's email coverage test needs 20 businesses that pass every gate, and 25 posts will give fewer than that. Treat this run as a build test, then import a bigger batch for the coverage test.
 - [ ] **Sequencer:** not chosen yet (spec Section 7). You can build everything up to Part 9 without it. Part 10 waits until it's chosen.
 
@@ -199,13 +200,41 @@ Table settings → **Deduplicate** → choose `Job URL`. The same post crawled t
 
 ### 2.3 The exclusion checks (spec Section 2, Exclude)
 
+**First, the `Exclusions` table.** It holds the competitors to block, so the list lives in one place instead of inside formulas.
+
+1. **+ Add table** → **Import CSV** → upload `exclusions.csv` (Before you start). Name the table `Exclusions`. Turn **Auto-run off**.
+2. Keep the 6 columns as they are: `Company Name`, `Legal Entity`, `Domain`, `Instagram Handle`, `Type`, `Source`. Domains are written plain (`getbumpa.com`, no `https://` or `www.`) and handles lowercase without "@", so they match the formulas below.
+3. **Check:** 7 rows, all with a domain; 4 with an Instagram handle.
+
+Then, back in `Job Posts`, two free formulas that turn this post's links into the same shape as the `Exclusions` columns:
+
+| Column | Plain English | Formula |
+|---|---|---|
+| `Website Domain` | The Maps Website without https://, www. or anything after the first /, in lowercase; blank if there's no website | `({{Maps Website}} \|\| "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[\/?#]/)[0]` |
+| `IG Handle Clean` | Instagram Handle in lowercase, without the @ and without spaces | `({{Instagram Handle}} \|\| "").replace(/^@/, "").replace(/\s+/g, "").toLowerCase()` |
+
+Then two lookups (free). For each: **+ Add column** → **Lookup single row in other table** (may be called "Lookup row") → table `Exclusions` → match the column below → add the run condition.
+
+| Column | Match `Exclusions` column | To this value | Run condition |
+|---|---|---|---|
+| `Excluded by Domain` | `Domain` | `{{Website Domain}}` | `!!{{Website Domain}}` |
+| `Excluded by Handle` | `Instagram Handle` | `{{IG Handle Clean}}` | `!!{{IG Handle Clean}}` |
+
+> **Why the run conditions matter:** three competitors have no Instagram handle in the CSV. A lookup run on a blank handle can match those blank rows and block a business by mistake. Only run each lookup when its value is filled.
+
+Now the exclusion formulas:
+
 | Column | Plain English | Formula |
 |---|---|---|
 | `Recruiter Name?` | True if Employer Name looks like a recruiter, staffing or outsourcing firm | `/recruit\|staffing\|outsourc\|bpo\|human resource\|manpower\|consult/i.test({{Employer Name}} \|\| "")` |
 | `No Employer?` | True if Employer Name is empty or says confidential | `!{{Employer Name}} \|\| /confidential/i.test({{Employer Name}})` |
-| `Competitor?` | True if Business Name is one of the spec's competitors: Viqe, Zana, CherryBrooks, CallAI, Obeks, NativeTalk, PressOne, Salescabal, Bumpa, Fresha | `/\b(viqe\|zana\|cherrybrooks\|callai\|obeks\|nativetalk\|pressone\|salescabal\|bumpa\|fresha)\b/i.test({{Business Name}} \|\| "")` |
+| `Competitor?` | True if Business Name is one of the spec's competitors (Viqe, Zana, CherryBrooks, CallAI, Obeks, NativeTalk, PressOne, Salescabal, Bumpa, Fresha), OR either Exclusions lookup found a row | `/\b(viqe\|zana\|cherrybrooks\|callai\|obeks\|nativetalk\|pressone\|salescabal\|bumpa\|fresha)\b/i.test({{Business Name}} \|\| "") \|\| !!{{Excluded by Domain}} \|\| !!{{Excluded by Handle}}` |
 
-> The spec also excludes **existing Ello users**. That check is **not active in v1**: it turns on when the Ello team sends a list of sign-up handles (spec Section 2). When it arrives, upload it as an `Exclusions` table with an `Account Key` column and add a lookup here.
+The name check stays because a job post shows the employer's name, which may not come with a website or Instagram account. The lookups catch a competitor posting under a name the pattern misses.
+
+**Check:** add one test row to `Job Posts` with Maps Website `https://www.getbumpa.com/pricing`: `Website Domain` shows `getbumpa.com` and `Competitor?` is true. A row with no website and no Instagram handle: both lookups stay empty (they didn't run). Delete the test row.
+
+> The spec also excludes **existing Ello users**. That check is **not active in v1**: it turns on when the Ello team sends a list of sign-up handles (spec Section 2). When it arrives, add those businesses to the `Exclusions` table with `Type` = `ello_user` (with their Instagram handle and domain where known), and the two lookups above block them too. If the list only gives business names, add an `Account Key` column to `Exclusions` and a third lookup on it.
 
 ### 2.4 Which channels the job covers (signal 3, a router)
 
@@ -239,7 +268,7 @@ Table settings → **Deduplicate** → choose `Job URL`. The same post crawled t
 ### 3.1 Create the empty table
 
 1. **+ Add table** → **Blank table**. Name it `Businesses`.
-2. Add these text columns: `Account Key`, `Business Name`, `Job Title`, `Description`, `Role Channel`, `Maps Place ID`, `Maps Category`, `Maps Website` (URL), `Instagram Handle`, `Instagram Followers` (Number), `Instagram Email` (Email), `Job Post Email` (Email), `Instagram Bio`, `Job URL` (URL), `Posted Date`.
+2. Add these text columns: `Account Key`, `Business Name`, `Job Title`, `Description`, `Role Channel`, `Maps Place ID`, `Maps Category`, `Maps Website` (URL), `Instagram Handle`, `Instagram Followers` (Number), `Instagram Email` (Email), `Job Post Email` (Email), `Instagram Bio`, `Job URL` (URL), `Posted Date`, `IG Handle Clean`.
 3. Table settings → **Deduplicate** → choose `Account Key`.
 4. Turn **Auto-run off** here too.
 
@@ -279,13 +308,9 @@ Back in `Job Posts`:
 
 **Why three lookups:** the spec (Sections 2 and 6) checks HubSpot on three shared keys, so a business already contacted by Workflow C (which knows it by its Instagram handle) is skipped here too.
 
-First, one free formula so the handle matches the way both workflows write it:
+The handle lookup uses `IG Handle Clean` (made in Part 2.3 and sent over in Part 3), which matches the way both workflows write the handle.
 
-| Column | Plain English | Formula |
-|---|---|---|
-| `IG Handle Clean` | Instagram Handle in lowercase, without the @ and without spaces | `({{Instagram Handle}} \|\| "").replace(/^@/, "").replace(/\s+/g, "").toLowerCase()` |
-
-Then add up to three HubSpot lookups, in this order. Each one only runs if the ones before found nothing:
+Add up to three HubSpot lookups, in this order. Each one only runs if the ones before found nothing:
 
 | Column | HubSpot property to match | Value | Run condition |
 |---|---|---|---|
@@ -680,7 +705,7 @@ Ello
 
 ## What it costs
 
-Free: the CSV import, formulas, lookups inside Clay, Send table data, views.
+Free: the CSV imports (job posts and `exclusions.csv`), formulas, lookups inside Clay (including the two `Exclusions` lookups), Send table data, views.
 
 Paid, and only on rows that passed every check before it:
 
@@ -711,6 +736,7 @@ Watch the Actions counter (top of Clay) before and after each paid step, and wri
 - [ ] Every paid column has a **run condition**.
 - [ ] Every paid column was tested on **1 row** (AI columns on 2 or 3 you can judge), and the cell was read before running more.
 - [ ] `Business Name` passed the 7 cleaning cases in Part 2.1.
+- [ ] `Exclusions` has 7 rows; the `getbumpa.com` test row was blocked, and the Exclusions lookups never ran on a blank value.
 - [ ] No `First Name` is an application contact or HR person.
 - [ ] `Businesses` has no duplicate `Account Key`s.
 - [ ] No recruiter, competitor or HubSpot-suppressed business is `Ready to Contact?`.
@@ -739,6 +765,7 @@ Watch the Actions counter (top of Clay) before and after each paid step, and wri
 | Email status is "catch-all" or "unknown" | The mail server accepts everything, or didn't answer | Leave it out. Don't send to unverified emails |
 | `In HubSpot?` is never true, even for the test company | The lookups didn't return `lifecyclestage`, `hs_num_open_deals` or `ello_last_outreach_date`, or the formula's paths don't match how Clay nests them | Add the properties to each lookup's output; open a matched cell and fix the paths |
 | `First Name` is the person who collects CVs | The AI took an application contact as the owner | Tighten the prompt rule in 5.1 and re-run on that row; clear the name by hand if needed |
+| A business with no website or Instagram is marked `Competitor?` | An Exclusions lookup ran on a blank value and matched a competitor row with a blank handle | Add the run condition (`!!{{Website Domain}}` / `!!{{IG Handle Clean}}`), clear the lookup cells and re-run |
 | `Business Name` cut part of a real name | The name ends in a word on the Lagos list after a comma or spaced dash | Fix that row by hand and note the case for the spec |
 
 ---
@@ -765,3 +792,5 @@ Found while writing this guide. **All 8 were written into the spec on 2026-11-17
 - CAC test on 5 known businesses: Before you start, Part 5.3.
 - No-email rows parked in a `No email` view and never sent: Part 7.4, Part 9.
 - Also corrected: the hiring-inbox note, which still said the spec hadn't decided (it decided to hold them on 2026-11-17).
+
+**Added 2026-11-20 (approved by Fredrick): the `Exclusions` table.** `exclusions.csv` (7 competitors, domain and Instagram handle where known, with sources) is imported as a reference table and checked with two lookups in Part 2.3, alongside the name pattern. `IG Handle Clean` moved from Part 4.2 to Part 2.3 so the lookup can use it. Spec Section 2 still describes the competitor check as a name blocklist formula only; **suggested spec fix:** name `exclusions.csv` as the competitor list and add the domain and handle match.
