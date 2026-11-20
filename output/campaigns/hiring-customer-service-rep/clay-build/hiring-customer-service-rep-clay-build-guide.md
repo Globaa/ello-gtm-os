@@ -91,7 +91,7 @@ Tick these off **before** the session. None of them should be done live.
   - Also confirm the internal names of two built-in properties: lifecycle stage (expected `lifecyclestage`) and number of open deals (expected `hs_num_open_deals`). HubSpot → Settings → Properties → Company → click the property → the internal name is under its label. If either differs, use the real name in Part 4.2 and tell the spec owner.
 - [ ] **CAC test, before the build test.** Pick 5 Lagos businesses you already know are CAC-registered. You'll run the Part 5.3 Claygent on them first. If it can't read the CAC search results, you'll do the CAC check by hand instead.
 - [ ] **The spec is open** next to you: `output/campaigns/hiring-customer-service-rep/workflow-spec.md`. Sections 2 (who's in and out), 3a (the two stages), 4 (signals), 5 (cells), 6 (variables) and the Copy section are what you're building.
-- [ ] **The Stage 1 CSV is ready.** The weekly crawl in spec Section 3a isn't built yet. For this first test, run `tools/crawl4ai` once on the Jobberman Lagos customer service pages (and the Maps and Instagram lookups), or fill the CSV by hand from 25 real posts. It must have exactly these 14 columns, in any order:
+- [ ] **The Stage 1 CSV is ready.** The weekly crawl in spec Section 3a isn't built yet. For this first test, run `tools/crawl4ai` once on the Jobberman Lagos customer service pages **and each job page** (the list page has no full description), plus the Maps and Instagram lookups, or fill the CSV by hand from 25 real posts. LinkedIn Jobs (Lagos) is the spec's secondary source, through treg (`apify.linkedin.search.jobs`, $0.001 per call on 2026-11-12; check the price before the call). It's optional for this test; if you use it, write its posts into the same CSV columns. It must have exactly these 14 columns, in any order:
 
   `employer_name, title, location, posted_date, description, job_url, job_post_email, maps_place_id, maps_category, maps_website, instagram_handle, instagram_followers, instagram_email, instagram_bio`
 
@@ -607,7 +607,7 @@ In the `Ready to send` view, hide helper formulas (Chat Words?, Call Words?, Mat
 
 1. In the sequencer, create a campaign called `Ello · Hiring CS rep · Lagos` and **leave it paused**. Settings: plain text on, open tracking off, ignore out-of-office replies on.
 2. Create 3 steps. Step 1 starts a new thread. Step 2 waits **3 days** and replies in the same thread. Step 3 waits **5 more days** (day 8) and replies in the same thread. Subjects stay the same, with `Re:` on steps 2 and 3.
-3. Paste the templates below **exactly as they are**, then convert `{{…}}` and `{a|b}` to your sequencer's syntax. Custom fields: `business_name`, `e1l1`, `e1l2`, `e2l1`, `e3l1`. `first_name` is usually a built-in field.
+3. Paste the templates below **exactly as they are**, then convert `{{…}}` and `{a|b}` to your sequencer's syntax. Custom fields: `business_name`, `e1l1`, `e1l2`, `e2l1`, `e3l1`. `first_name` is usually a built-in field. **Launch check (spec Section 7):** Step 3's closing line puts `{{business_name}}` inside a spintax option. Send yourself a test of Step 3 and check the business name filled in both options; if your sequencer breaks on a variable inside spintax, ask the spec owner before changing the wording.
 
 **Step 1 (day 0, new thread)**
 

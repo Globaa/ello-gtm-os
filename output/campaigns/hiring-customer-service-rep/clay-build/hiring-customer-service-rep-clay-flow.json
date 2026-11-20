@@ -12,10 +12,10 @@
     {"id": "s2", "n": "2", "lane": "posts", "col": 3, "title": "Free post checks", "text": "Right title, Lagos, 30 days, no recruiters or competitors. Calls or chat?", "cost": "free"},
     {"id": "s3", "n": "3", "lane": "biz", "col": 4, "title": "Send each business once", "text": "Deduped on Account Key, newest post wins", "cost": "free"},
     {"id": "s4", "n": "4", "lane": "biz", "col": 5, "title": "Business gates", "text": "1 to 3 open roles, under 50k followers, not in HubSpot", "cost": "paid"},
-    {"id": "s5", "n": "5", "lane": "biz", "col": 6, "title": "Type and CAC (AI)", "text": "Retail, food or salon? Clean role title. Registered with CAC?", "cost": "paid"},
+    {"id": "s5", "n": "5", "lane": "biz", "col": 6, "title": "Type and CAC (AI)", "text": "Retail, food or salon? Role title, owner name. Registered with CAC?", "cost": "paid"},
     {"id": "s6", "n": "6", "lane": "biz", "col": 7, "title": "Route to a cell", "text": "Business type x calls or chat = 12 cells. Unclear goes to review", "cost": "free", "highlight": true},
     {"id": "s7", "n": "7", "lane": "biz", "col": 8, "title": "Find and check email", "text": "Job post, Instagram, then website (AI). Validate every one", "cost": "paid"},
-    {"id": "s8", "n": "8", "lane": "biz", "col": 9, "title": "Copy lines, sequencer", "text": "4 approved lines as formulas. Push to a paused campaign", "cost": "paid"}
+    {"id": "s8", "n": "8", "lane": "biz", "col": 9, "title": "Copy, send, log", "text": "4 approved lines as formulas. Paused campaign, HubSpot log", "cost": "paid"}
   ],
   "arrows": [
     {"from": "x", "to": "s1", "label": "you import it", "dashed": true},

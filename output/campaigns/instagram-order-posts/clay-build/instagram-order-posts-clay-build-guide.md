@@ -661,7 +661,7 @@ Hide helper formulas (DM in Caption?, Site To Check…) in the operator views. *
 
 1. In the sequencer, create a campaign called `Ello · Instagram order posts · Lagos` and **leave it paused**. Settings: plain text on, open tracking off, ignore out-of-office replies on.
 2. Create 3 steps. Step 1 starts a new thread. Step 2 waits **3 days** and replies in the same thread. Step 3 waits **5 more days** (day 8) and replies in the same thread. Subjects stay the same, with `Re:` on steps 2 and 3.
-3. Paste the templates below **exactly**, then convert `{{…}}` and `{a|b}` to your sequencer's syntax. Custom fields: `business_name`, `e1l1`, `e1l2`, `e2l1`, `e3l1`.
+3. Paste the templates below **exactly**, then convert `{{…}}` and `{a|b}` to your sequencer's syntax. Custom fields: `business_name`, `e1l1`, `e1l2`, `e2l1`, `e3l1`. **Launch check (spec Section 7):** Step 3's closing line puts `{{business_name}}` inside a spintax option. Send yourself a test of Step 3 and check the business name filled in both options; if your sequencer breaks on a variable inside spintax, ask the spec owner before changing the wording.
 
 **Step 1 (day 0, new thread)**
 
