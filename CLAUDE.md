@@ -27,8 +27,8 @@ Ello (https://ello.africa/): one handle (ello.africa/@business) customers call o
   - `campaign-strategy.md` (DRAFT): 20 ranked campaign ideas with mother intent, tier, volume band, difficulty.
   - `hiring-customer-service-rep/workflow-spec.md` (COPY-APPROVED 2026-11-17): Workflow B, email only; 3 emails (days 0/3/8) approved.
   - `instagram-order-posts/workflow-spec.md` (COPY-APPROVED 2026-11-17): Workflow C, ideas #1 + #2 (Instagram DM-to-order and orders-open posts), 8 cells; 3 emails (days 0/3/8) + 1 manual Instagram DM approved.
-  - `instagram-order-posts/clay-build/`: Clay build guide (beginner, Parts 0 to 10) + swimlane flow (.png/.html/.json), from `/clay-build-plan`.
-  - `hiring-customer-service-rep/clay-build/`: Clay build guide (beginner, Parts 0 to 10) + swimlane flow (.png/.html/.json), from `/clay-build-plan`.
+  - `instagram-order-posts/clay-build/`: Clay build guide (beginner, Parts 0 to 10) + swimlane flow (.png/.html/.json), from `/clay-build-plan`; `exclusions.csv` (7 competitors, domain + Instagram handle, sourced; imported as the Clay `Exclusions` table, guide Part 2.3; force-added past the `*.csv` ignore rule).
+  - `hiring-customer-service-rep/clay-build/`: Clay build guide (beginner, Parts 0 to 10) + swimlane flow (.png/.html/.json), from `/clay-build-plan`; `exclusions.csv` (same 7 competitors; Clay `Exclusions` table, guide Part 2.3; force-added past the `*.csv` ignore rule).
 - `tools/`: scripts and tool configs (imported). Read when a task needs automation.
   - `rex/` (Clay client + `claylens/` Chrome extension, 42 files), `crawl4ai/README.md`, `agent-browser/README.md`
 - `weekly-priorities/`: one file per ISO week (YYYY-Www.md). Read at the start of every session. Now: `2026-W46.md`.
@@ -52,7 +52,7 @@ Imported from bolaji-ships/gtm-starter-kit (0e6d90b), in `.claude/skills/`. Run 
 ## Tools
 - Treg: paid data lookups and generative models (enrichment, SERP, social, scraping). Check the price before every call.
 - Miro: GTM system diagrams and flow charts (used by `/miro-gtm-flowchart`).
-- Notion: publish finished docs for the team. This repo stays the source of truth. Mirror of `context/` and `output/` (no raw research): [Ello GTM OS](https://app.notion.com/p/41762bcf06ca813cac60ce83bbfc14bc) (private draft, published 2026-11-13; Workflow B and C specs and Clay build guides updated 2026-11-20).
+- Notion: publish finished docs for the team. This repo stays the source of truth. Mirror of `context/` and `output/` (no raw research): [Ello GTM OS](https://app.notion.com/p/41762bcf06ca813cac60ce83bbfc14bc) (private draft, published 2026-11-13; Workflow B and C specs, Clay build guides and exclusions.csv updated 2026-11-20).
 - Clay: company and people sourcing, enrichment and AI columns. Local helper: `tools/rex/`.
 - HubSpot: CRM of record for accounts, contacts, deals and outbound activity.
 - n8n: automation glue between signals, Clay, sequencer and HubSpot.
