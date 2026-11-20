@@ -90,7 +90,7 @@ Tick these off **before** the session. None of them should be done live.
   - `maps_place_id` (single-line text)
   - `ello_last_outreach_date` (**date picker**). Both workflows write it on every contact. It drives the 90-day rule, because a logged HubSpot note doesn't update "last contacted".
   - Also confirm the internal names of two built-in properties: lifecycle stage (expected `lifecyclestage`) and number of open deals (expected `hs_num_open_deals`). HubSpot → Settings → Properties → Company → click the property → the internal name is under its label. If either differs, use the real name in Part 4.2 and tell the spec owner.
-- [ ] **Competitor handles.** Look up the Instagram handles of Zana, CallAI, Obeks, NativeTalk, PressOne, Bumpa and Fresha (lowercase, no @) and add them to the spec's Section 2. Part 2.3 blocks them by exact match. You can build with an empty list, but it blocks nobody until it's filled.
+- [ ] **Competitor handles.** Four are in the spec's Section 2 and in Part 2.3 (CallAI's parent, PressOne, Bumpa, Fresha). Zana, Obeks and NativeTalk have no Instagram linked on their sites; if you find their accounts, add them to the spec first, then to Part 2.3.
 - [ ] **CAC test, before the build test.** Pick 5 Lagos businesses you already know are CAC-registered. You'll run the Part 5.3 Claygent on them first. If it can't read the CAC search results, you'll do the CAC check by hand instead.
 - [ ] **The spec is open** next to you: `output/campaigns/instagram-order-posts/workflow-spec.md`. Sections 2 (who's in and out), 3 (sources), 4 (signals), 5 (cells), 6 (variables) and the Copy section are what you're building.
 - [ ] **The Stage 1 CSV is ready.** Stage 1 isn't built yet (spec Section 3). For this first test, run one treg pull on one S1 hashtag and one S2 hashtag (check the price before each call), fetch the profiles of matching accounts, or fill the CSV by hand from 25 real posts. It must have exactly these 16 columns, in any order:
@@ -191,9 +191,9 @@ The keyword list depends on **which hashtag the post was found on**, not on what
 | Column | Plain English | Formula |
 |---|---|---|
 | `In Lagos?` | True if the Bio or Post Location names Lagos or one of the Lagos areas in the spec's list | `/lagos\|lekki\|ikeja\|yaba\|surulere\|ajah\|ikoyi\|victoria island\|festac\|gbagada\|ikorodu\|magodo\|ogba\|oshodi\|egbeda\|ojodu\|ilupeju\|isolo\|apapa\|sangotedo\|chevron/i.test(({{Bio}} \|\| "") + " " + ({{Post Location}} \|\| ""))` |
-| `Competitor?` | True if the Handle is exactly one of the competitors' Instagram handles in the spec's Section 2 list | `["handle1", "handle2"].includes({{Handle}})`: replace the placeholders with the real handles from the spec, lowercase, no @ |
+| `Competitor?` | True if the Handle is exactly one of the competitors' Instagram handles in the spec's Section 2 list | `["cherrybrooksofficial", "pressone.africa", "getbumpa", "fresha"].includes({{Handle}})`. Add Zana, Obeks and NativeTalk when the spec lists them (lowercase, no @) |
 
-> **Why these changed (2026-11-20):** `maryland` (also a US state) and `vi` (any standalone "vi") were dropped from the Lagos list; "Maryland, Lagos" still passes on "lagos". The competitor check is an exact handle match, because a name match on "zana" would block unrelated sellers. Until the spec lists the handles, leave the list empty: `[].includes({{Handle}})`.
+> **Why these changed (2026-11-20):** `maryland` (also a US state) and `vi` (any standalone "vi") were dropped from the Lagos list; "Maryland, Lagos" still passes on "lagos". The competitor check is an exact handle match, because a name match on "zana" would block unrelated sellers. Four handles are confirmed (2026-11-20); Zana, Obeks and NativeTalk are still NEEDS INPUT in the spec.
 
 > **Existing Ello users** are excluded in the spec but **not active in v1**: it turns on when the Ello team sends a list of sign-up handles. When it arrives, upload it as an `Exclusions` table with a `Handle` column and add a lookup here.
 
