@@ -192,7 +192,9 @@ The keyword list depends on **which hashtag the post was found on**, not on what
 
 1. **+ Add table** → **Import CSV** → upload `exclusions.csv` (Before you start). Name the table `Exclusions`. Turn **Auto-run off**.
 2. Keep the 6 columns as they are: `Company Name`, `Legal Entity`, `Domain`, `Instagram Handle`, `Type`, `Source`. Domains are written plain (`getbumpa.com`, no `https://` or `www.`) and handles lowercase without "@", so they match the formulas below.
-3. **Check:** 7 rows, all with a domain; 4 with an Instagram handle.
+3. **Check:** 7 rows; 6 with a domain (Fresha's is blank on purpose, see below); 4 with an Instagram handle.
+
+> **Why Fresha has no domain (fixed 2026-11-21):** Fresha is a booking platform. Salons put their Fresha booking page (`fresha.com/...`) in their bio or Maps listing, so matching on `fresha.com` would block real salons as competitors. Fresha is matched on its handle (`fresha`) only. Don't add `fresha.com` back.
 
 Then, back in `Posts`, two free formulas that turn the post's links into the same shape as the `Domain` column:
 
@@ -209,7 +211,7 @@ Then three lookups (free). For each: **+ Add column** → **Lookup single row in
 | `Excluded by Bio Domain` | `Domain` | `{{Bio Link Domain}}` | `!!{{Bio Link Domain}}` |
 | `Excluded by Maps Domain` | `Domain` | `{{Maps Domain}}` | `!!{{Maps Domain}}` |
 
-> **Why the run conditions matter:** three competitors have no Instagram handle in the CSV. A lookup run on a blank value can match those blank rows and block a seller by mistake. Only run each lookup when its value is filled.
+> **Why the run conditions matter:** three competitors have no Instagram handle in the CSV, and Fresha has no domain. A lookup run on a blank value can match those blank rows and block a seller by mistake. Only run each lookup when its value is filled.
 
 Now the two checks:
 
@@ -222,7 +224,7 @@ Now the two checks:
 
 > **Existing Ello users** are excluded in the spec but **not active in v1**: it turns on when the Ello team sends a list of sign-up handles. When it arrives, add those accounts to the `Exclusions` table with `Type` = `ello_user` and their Instagram handle (and domain where known); the lookups above block them too.
 
-**Check:** read 5 rows where `In Lagos?` is false. Is any of them really in Lagos? If an area is missing, add it to the spec's list first, then here. Then read 5 rows where it's true and make sure none is outside Lagos. For `Competitor?`, add one test row to `Posts` with Instagram Handle `@GetBumpa` and one with Bio Link `https://www.fresha.com/`: both must show `Competitor?` true. A row with no handle and no links: all three lookups stay empty (they didn't run). Delete the test rows.
+**Check:** read 5 rows where `In Lagos?` is false. Is any of them really in Lagos? If an area is missing, add it to the spec's list first, then here. Then read 5 rows where it's true and make sure none is outside Lagos. For `Competitor?`, add one test row to `Posts` with Instagram Handle `@GetBumpa` and one with Bio Link `https://www.pressone.africa/`: both must show `Competitor?` true. Add one with Bio Link `https://www.fresha.com/a/test-salon`: it must show `Competitor?` false (a salon's booking link is not a competitor). A row with no handle and no links: all three lookups stay empty (they didn't run). Delete the test rows.
 
 ### 2.4 Where orders go (signal 3, a router) and personal number (signal 6)
 
@@ -795,7 +797,7 @@ Watch the Actions counter before and after each paid step, and write the numbers
 - [ ] Auto-run is **off** on both tables.
 - [ ] Every paid column has a **run condition**.
 - [ ] Every paid column was tested on **1 row** (AI columns on 2 or 3 you can judge), and the cell was read before running more.
-- [ ] `Exclusions` has 7 rows; the `@GetBumpa` and `fresha.com` test rows were blocked, and the Exclusions lookups never ran on a blank value.
+- [ ] `Exclusions` has 7 rows; the `@GetBumpa` and `pressone.africa` test rows were blocked, the `fresha.com` booking-link row was not, and the Exclusions lookups never ran on a blank value.
 - [ ] `Sellers` has no duplicate handles, and the newest post won.
 - [ ] No competitor or HubSpot-suppressed seller is `Ready to Contact?`.
 - [ ] No `unclear`, `s3_salon`, `clinic`, `other` or non-seller account has a cell.

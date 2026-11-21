@@ -204,7 +204,9 @@ Table settings → **Deduplicate** → choose `Job URL`. The same post crawled t
 
 1. **+ Add table** → **Import CSV** → upload `exclusions.csv` (Before you start). Name the table `Exclusions`. Turn **Auto-run off**.
 2. Keep the 6 columns as they are: `Company Name`, `Legal Entity`, `Domain`, `Instagram Handle`, `Type`, `Source`. Domains are written plain (`getbumpa.com`, no `https://` or `www.`) and handles lowercase without "@", so they match the formulas below.
-3. **Check:** 7 rows, all with a domain; 4 with an Instagram handle.
+3. **Check:** 7 rows; 6 with a domain (Fresha's is blank on purpose, see below); 4 with an Instagram handle.
+
+> **Why Fresha has no domain (fixed 2026-11-21):** Fresha is a booking platform. Salons (in scope for this workflow) often use their Fresha booking page (`fresha.com/...`) as their Maps website, so matching on `fresha.com` would block real salons as competitors. Fresha is caught by its handle (`fresha`) and the name check below. Don't add `fresha.com` back.
 
 Then, back in `Job Posts`, two free formulas that turn this post's links into the same shape as the `Exclusions` columns:
 
@@ -220,7 +222,7 @@ Then two lookups (free). For each: **+ Add column** → **Lookup single row in o
 | `Excluded by Domain` | `Domain` | `{{Website Domain}}` | `!!{{Website Domain}}` |
 | `Excluded by Handle` | `Instagram Handle` | `{{IG Handle Clean}}` | `!!{{IG Handle Clean}}` |
 
-> **Why the run conditions matter:** three competitors have no Instagram handle in the CSV. A lookup run on a blank handle can match those blank rows and block a business by mistake. Only run each lookup when its value is filled.
+> **Why the run conditions matter:** three competitors have no Instagram handle in the CSV, and Fresha has no domain. A lookup run on a blank value can match those blank rows and block a business by mistake. Only run each lookup when its value is filled.
 
 Now the exclusion formulas:
 
@@ -232,7 +234,7 @@ Now the exclusion formulas:
 
 The name check stays because a job post shows the employer's name, which may not come with a website or Instagram account. The lookups catch a competitor posting under a name the pattern misses.
 
-**Check:** add one test row to `Job Posts` with Maps Website `https://www.getbumpa.com/pricing`: `Website Domain` shows `getbumpa.com` and `Competitor?` is true. A row with no website and no Instagram handle: both lookups stay empty (they didn't run). Delete the test row.
+**Check:** add one test row to `Job Posts` with Maps Website `https://www.getbumpa.com/pricing`: `Website Domain` shows `getbumpa.com` and `Competitor?` is true. Add one with Business Name `Test Salon` and Maps Website `https://www.fresha.com/a/test-salon`: `Competitor?` must be false. A row with no website and no Instagram handle: both lookups stay empty (they didn't run). Delete the test rows.
 
 > The spec also excludes **existing Ello users**. That check is **not active in v1**: it turns on when the Ello team sends a list of sign-up handles (spec Section 2). When it arrives, add those businesses to the `Exclusions` table with `Type` = `ello_user` (with their Instagram handle and domain where known), and the two lookups above block them too. If the list only gives business names, add an `Account Key` column to `Exclusions` and a third lookup on it.
 
@@ -736,7 +738,7 @@ Watch the Actions counter (top of Clay) before and after each paid step, and wri
 - [ ] Every paid column has a **run condition**.
 - [ ] Every paid column was tested on **1 row** (AI columns on 2 or 3 you can judge), and the cell was read before running more.
 - [ ] `Business Name` passed the 7 cleaning cases in Part 2.1.
-- [ ] `Exclusions` has 7 rows; the `getbumpa.com` test row was blocked, and the Exclusions lookups never ran on a blank value.
+- [ ] `Exclusions` has 7 rows; the `getbumpa.com` test row was blocked, the `fresha.com` booking-link row was not, and the Exclusions lookups never ran on a blank value.
 - [ ] No `First Name` is an application contact or HR person.
 - [ ] `Businesses` has no duplicate `Account Key`s.
 - [ ] No recruiter, competitor or HubSpot-suppressed business is `Ready to Contact?`.
