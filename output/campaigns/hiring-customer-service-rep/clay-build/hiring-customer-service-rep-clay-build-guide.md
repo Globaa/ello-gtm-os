@@ -242,6 +242,9 @@ The name check stays because some posts have no domain. The lookup catches a com
 | `Chat Words?` | True if the description talks about answering messages: WhatsApp or Instagram orders, messages, enquiries or DMs; DMs; direct messages; live chat; online orders or enquiries; social media enquiries, messages or pages; responding to messages or chats | `/\b(whatsapp\|instagram) (orders?\|messages\|enquiries\|dms?\|chats?)\b\|\bdms?\b\|direct messages\|live chat\|online (orders\|enquiries)\|social media (enquiries\|messages\|pages)\|respond(ing)? to (messages\|chats)/i.test({{Description}} \|\| "")` |
 | `Call Words?` | True if the description talks about answering calls: answering calls or the phone; phone orders, calls or enquiries; inbound, incoming or outbound calls; telephone orders or enquiries; calling customers or clients | `/answer(ing)? (calls\|the phone\|phone calls)\|phone (orders\|calls\|enquiries)\|(inbound\|incoming\|outbound) calls\|telephone (orders\|enquiries)\|call (customers\|clients)/i.test({{Description}} \|\| "")` |
 | `Role Channel` | "both" if both are true, "chat" if only Chat Words, "calls" if only Call Words, otherwise "not_stated" | `{{Chat Words?}} && {{Call Words?}} ? "both" : {{Chat Words?}} ? "chat" : {{Call Words?}} ? "calls" : "not_stated"` |
+| `Instagram DMs?` | True if Description names Instagram orders, messages, enquiries, DMs or chats, or mentions Instagram and also DMs or direct messages. Only used to pick the Email 3 line | `/\binstagram (orders?\|messages\|enquiries\|dms?\|chats?)\b/i.test(({{Description}} \|\| "")) \|\| (/\binstagram\b/i.test(({{Description}} \|\| "")) && /\bdms?\b\|direct messages/i.test(({{Description}} \|\| "")))` |
+
+**Check `Instagram DMs?`:** "reply to Instagram DMs" → true. "handle WhatsApp orders" → false. "post on Instagram" → false.
 
 **Check:** the spec asks for these patterns to be tested on **50 real descriptions** before the full run. With 25, read every one: does `Role Channel` match what a person would say the job is about? Write down any miss and the phrase that caused it. Fix the pattern in the spec first, then here.
 
@@ -265,7 +268,7 @@ The name check stays because some posts have no domain. The lookup catches a com
 ### 3.1 Create the empty table
 
 1. **+ Add table** → **Blank table**. Name it `Businesses`.
-2. Add these text columns: `Account Key`, `Business Name`, `Job Title`, `Description`, `Role Channel`, `LinkedIn URL Clean`, `Company Domain`, `Reference Size`, `Reference Industry`, `Reference Description`, `Job URL` (URL), `Posted Date`, and `Size Unknown?` (Checkbox).
+2. Add these text columns: `Account Key`, `Business Name`, `Job Title`, `Description`, `Role Channel`, `LinkedIn URL Clean`, `Company Domain`, `Reference Size`, `Reference Industry`, `Reference Description`, `Job URL` (URL), `Posted Date`, `Size Unknown?` (Checkbox) and `Instagram DMs?` (Checkbox).
 3. Table settings → **Deduplicate** → choose `Account Key`.
 4. Turn **Auto-run off** here too.
 
@@ -539,7 +542,7 @@ For reference while you check the formulas, here is every line as the spec has i
 | `e3l1` | Role Channel | `both` | Customers call or chat from the same link, so your new hire works from one place instead of a phone and several apps. |
 | `e3l1` | Role Channel | `not_stated` | Your handle can go in your Instagram bio, on your Google profile, on a business card or in your ads, so customers always know where to reach you. |
 
-The lines are exhaustive: every `Ready to Contact?` row has one of the three segments and one of the four channels, so there's no fallback line.
+The lines are exhaustive: every `Ready to Contact?` row has one of the three segments and one of the four channels, so there's no fallback line. One rule for `e3l1`: a `chat` row whose `Instagram DMs?` isn't true gets the `not_stated` line (spec, 2026-11-25).
 
 #### `E1 L1`: the opener (routes on Segment)
 
@@ -583,7 +586,7 @@ The lines are exhaustive: every `Ready to Contact?` row has one of the three seg
 
 #### `E3 L1`: Email 3's opener (routes on Role Channel)
 
-- **Plain English:** *"If Ready to Contact is false, leave blank. Otherwise pick the e3l1 line for this row's Role Channel from the table in 8.2."*
+- **Plain English:** *"If Ready to Contact is false, leave blank. Otherwise pick the e3l1 line for this row's Role Channel from the table in 8.2, but if Role Channel is chat and Instagram DMs is not true, use the not_stated line."*
 - **Formula:**
 ```javascript
 !{{Ready to Contact?}} ? "" : ({
@@ -591,8 +594,9 @@ The lines are exhaustive: every `Ready to Contact?` row has one of the three seg
   "calls": "Customers call your handle from their browser, without your personal phone number ever being exposed.",
   "both": "Customers call or chat from the same link, so your new hire works from one place instead of a phone and several apps.",
   "not_stated": "Your handle can go in your Instagram bio, on your Google profile, on a business card or in your ads, so customers always know where to reach you."
-})[{{Role Channel}}] || ""
+})[{{Role Channel}} === "chat" && {{Instagram DMs?}} !== true ? "not_stated" : {{Role Channel}}] || ""
 ```
+- **Check:** a WhatsApp-only `chat` row gets the "Your handle can go in your Instagram bio" line.
 
 #### Read the whole sequence
 
@@ -631,7 +635,7 @@ In the `Ready to send` view, hide helper formulas (Chat Words?, Call Words?, Mat
 
 ## Part 10. Connect the sequencer
 
-**Build this column, but don't run it.** The sequencer isn't chosen yet (spec Section 7), so this part waits. **Also blocked:** the Email 3 `chat` line assumes an Instagram bio and existing DMs, which this route doesn't check. It needs copy approval before launch (spec Section 7). When both are settled:
+**Build this column, but don't run it.** The sequencer isn't chosen yet (spec Section 7), so this part waits. When it's chosen:
 
 1. In the sequencer, create a campaign called `Ello · Hiring CS rep · Lagos` and **leave it paused**. Settings: plain text on, open tracking off, ignore out-of-office replies on.
 2. Create 3 steps. Step 1 starts a new thread. Step 2 waits **3 days** and replies in the same thread. Step 3 waits **5 more days** (day 8) and replies in the same thread. Subjects stay the same, with `Re:` on steps 2 and 3.
@@ -777,12 +781,7 @@ Watch the Actions counter (top of Clay) before and after each paid step, and wri
 
 ## Things the spec needs to fix
 
-Found on 2026-11-25 (spec not edited for these):
-
-1. **Section 6:** add `bc_checked` (manual checkbox). Section 7 requires the B/C cross-check, and the table needs somewhere to record it.
-2. **Copy, Email 3 `chat` line:** approve a change, or limit when it is used, before launch.
-3. **Section 7, HubSpot write:** say that an existing company found by any key is updated by its record ID, so a second company isn't created.
-4. **Section 2, competitors:** name `exclusions.csv` as the source of the `Exclusions` table.
+Nothing open. The 4 fixes found on 2026-11-25 were written into the spec the same day (approved by Fredrick): `bc_checked` (Section 6), the Email 3 `chat` line limited to posts naming Instagram DMs (Sections 4 and 6, Copy), HubSpot update by record ID (Section 7), and `exclusions.csv` named as the competitor list (Section 2).
 
 ## History (before 2026-11-25)
 
