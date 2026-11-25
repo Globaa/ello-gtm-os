@@ -243,6 +243,8 @@ The name check stays because some posts have no domain. The lookup catches a com
 | `Call Words?` | True if the description talks about answering calls: answering calls or the phone; phone orders, calls or enquiries; inbound, incoming or outbound calls; telephone orders or enquiries; calling customers or clients | `/answer(ing)? (calls\|the phone\|phone calls)\|phone (orders\|calls\|enquiries)\|(inbound\|incoming\|outbound) calls\|telephone (orders\|enquiries)\|call (customers\|clients)/i.test({{Description}} \|\| "")` |
 | `Role Channel` | "both" if both are true, "chat" if only Chat Words, "calls" if only Call Words, otherwise "not_stated" | `{{Chat Words?}} && {{Call Words?}} ? "both" : {{Chat Words?}} ? "chat" : {{Call Words?}} ? "calls" : "not_stated"` |
 | `Instagram DMs?` | True if Description names Instagram orders, messages, enquiries, DMs or chats, or mentions Instagram and also DMs or direct messages. Only used to pick the Email 3 line | `/\binstagram (orders?\|messages\|enquiries\|dms?\|chats?)\b/i.test(({{Description}} \|\| "")) \|\| (/\binstagram\b/i.test(({{Description}} \|\| "")) && /\bdms?\b\|direct messages/i.test(({{Description}} \|\| "")))` |
+| `DM Words?` | True if Description names DMs, direct messages, or Instagram messages, DMs or chats. Only used to pick the Email 1 line | `/\bdms?\b\|direct messages\|\binstagram (messages\|dms?\|chats?)\b/i.test({{Description}} \|\| "")` |
+| `WhatsApp Words?` | True if Description mentions WhatsApp. Only used to pick the Email 1 line | `/\bwhatsapp\b/i.test({{Description}} \|\| "")` |
 
 **Check `Instagram DMs?`:** "reply to Instagram DMs" → true. "handle WhatsApp orders" → false. "post on Instagram" → false.
 
@@ -268,7 +270,7 @@ The name check stays because some posts have no domain. The lookup catches a com
 ### 3.1 Create the empty table
 
 1. **+ Add table** → **Blank table**. Name it `Businesses`.
-2. Add these text columns: `Account Key`, `Business Name`, `Job Title`, `Description`, `Role Channel`, `LinkedIn URL Clean`, `Company Domain`, `Reference Size`, `Reference Industry`, `Reference Description`, `Job URL` (URL), `Posted Date`, `Size Unknown?` (Checkbox) and `Instagram DMs?` (Checkbox).
+2. Add these text columns: `Account Key`, `Business Name`, `Job Title`, `Description`, `Role Channel`, `LinkedIn URL Clean`, `Company Domain`, `Reference Size`, `Reference Industry`, `Reference Description`, `Job URL` (URL), `Posted Date`, `Size Unknown?` (Checkbox) `Instagram DMs?` (Checkbox), `DM Words?` (Checkbox) and `WhatsApp Words?` (Checkbox).
 3. Table settings → **Deduplicate** → choose `Account Key`.
 4. Turn **Auto-run off** here too.
 
@@ -542,7 +544,7 @@ For reference while you check the formulas, here is every line as the spec has i
 | `e3l1` | Role Channel | `both` | Customers call or chat from the same link, so your new hire works from one place instead of a phone and several apps. |
 | `e3l1` | Role Channel | `not_stated` | Your handle can go in your Instagram bio, on your Google profile, on a business card or in your ads, so customers always know where to reach you. |
 
-The lines are exhaustive: every `Ready to Contact?` row has one of the three segments and one of the four channels, so there's no fallback line. One rule for `e3l1`: a `chat` row whose `Instagram DMs?` isn't true gets the `not_stated` line (spec, 2026-11-25).
+The lines are exhaustive: every `Ready to Contact?` row has one of the three segments and one of the four channels, so there's no fallback line. One rule for `e3l1`: a `chat` row whose `Instagram DMs?` isn't true gets the `not_stated` line. For `e1l2`: a `chat` row needs `DM Words?` and `WhatsApp Words?`, and a `both` row needs `DM Words?`; otherwise it gets the `not_stated` line (spec, 2026-11-25).
 
 #### `E1 L1`: the opener (routes on Segment)
 
@@ -559,7 +561,7 @@ The lines are exhaustive: every `Ready to Contact?` row has one of the three seg
 
 #### `E1 L2`: the situation (routes on Role Channel)
 
-- **Plain English:** *"If Ready to Contact is false, leave blank. Otherwise pick the e1l2 line for this row's Role Channel from the table in 8.2."*
+- **Plain English:** *"If Ready to Contact is false, leave blank. Otherwise pick the e1l2 line for this row's Role Channel from the table in 8.2, but use the not_stated line if Role Channel is chat and DM Words or WhatsApp Words is not true, or if Role Channel is both and DM Words is not true."*
 - **Formula:**
 ```javascript
 !{{Ready to Contact?}} ? "" : ({
@@ -567,7 +569,7 @@ The lines are exhaustive: every `Ready to Contact?` row has one of the three seg
   "calls": "From the sound of the post it's mostly phone calls, and calls rarely come one at a time.",
   "both": "The post has them on calls and DMs, which is a lot of places to watch at once.",
   "not_stated": "Whoever you hire will cover their shift, but customers don't keep office hours."
-})[{{Role Channel}}] || ""
+})[({{Role Channel}} === "chat" && !({{DM Words?}} === true && {{WhatsApp Words?}} === true)) || ({{Role Channel}} === "both" && {{DM Words?}} !== true) ? "not_stated" : {{Role Channel}}] || ""
 ```
 - **Check:** open the job post for one `calls` row and one `chat` row. Does the line describe the job fairly?
 

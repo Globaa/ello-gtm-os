@@ -78,7 +78,7 @@
       "lane": "sellers",
       "col": 5,
       "title": "Seller gates",
-      "text": "Under 50k followers, not in HubSpot (handle, then place ID)",
+      "text": "Under 50k followers, not in HubSpot (handle, place ID, domain)",
       "cost": "paid"
     },
     {

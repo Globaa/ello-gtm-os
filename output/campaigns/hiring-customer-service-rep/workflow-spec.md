@@ -1,6 +1,6 @@
 # Workflow B: Lagos businesses hiring a customer service or order-taking rep
 
-**Status:** COPY-APPROVED 2026-11-17 (structure 2026-11-13; E1 2026-11-13; E2, E3 2026-11-17) · Clay-readiness fixes applied 2026-11-17 · Clay build-guide fixes applied 2026-11-17 (both approved by Fredrick) · shared HubSpot keys with Workflow C added 2026-11-17 (approved by Fredrick; Clay build guide updated to match the same day) · pre-build check fixes applied 2026-11-20 (approved by Fredrick: signals table repaired, HubSpot suppression rule, Instagram lookup for B/C dedupe, CAC test, owner name from AI, email order, name cleaning, no-email view; owner name never an application contact) · Clay build guide updated to match 2026-11-20 · sources moved to Clay Find Jobs, Stage 1 and Instagram reads removed 2026-11-25 (approved by Fredrick; copy unchanged; Clay build guide and flow updated to match the same day) · 4 guide fixes applied 2026-11-25 (approved by Fredrick: `bc_checked`, Email 3 `chat` line limited to posts naming Instagram DMs, HubSpot update by record ID, `exclusions.csv` named; no copy wording changed)
+**Status:** COPY-APPROVED 2026-11-17 (structure 2026-11-13; E1 2026-11-13; E2, E3 2026-11-17) · Clay-readiness fixes applied 2026-11-17 · Clay build-guide fixes applied 2026-11-17 (both approved by Fredrick) · shared HubSpot keys with Workflow C added 2026-11-17 (approved by Fredrick; Clay build guide updated to match the same day) · pre-build check fixes applied 2026-11-20 (approved by Fredrick: signals table repaired, HubSpot suppression rule, Instagram lookup for B/C dedupe, CAC test, owner name from AI, email order, name cleaning, no-email view; owner name never an application contact) · Clay build guide updated to match 2026-11-20 · sources moved to Clay Find Jobs, Stage 1 and Instagram reads removed 2026-11-25 (approved by Fredrick; copy unchanged; Clay build guide and flow updated to match the same day) · 4 guide fixes applied 2026-11-25 (approved by Fredrick: `bc_checked`, Email 3 `chat` line limited to posts naming Instagram DMs, HubSpot update by record ID, `exclusions.csv` named; no copy wording changed) · Email 1 `chat` and `both` lines limited to posts that name those channels 2026-11-25
 
 Clay build guide: `clay-build/hiring-customer-service-rep-clay-build-guide.md` (from `/clay-build-plan`, 2026-11-17).
 
@@ -92,6 +92,8 @@ Rewritten 2026-11-25. Built entirely in Clay. Stage 1 (crawl4ai, treg, n8n) is n
 
 **Instagram DMs read (`instagram_dms`, added 2026-11-25):** true when the description matches `\binstagram (orders?|messages|enquiries|dms?|chats?)\b`, or contains `\binstagram\b` and also `\bdms?\b|direct messages` (case-insensitive). Read from the newest post. Not a router: it never changes the cell, only which approved `e3l1` line a `chat` row gets (Section 6).
 
+**Email 1 reads (added 2026-11-25):** `dm_words` is true when the description matches `\bdms?\b|direct messages|\binstagram (messages|dms?|chats?)\b`; `whatsapp_words` when it matches `\bwhatsapp\b` (both case-insensitive, newest post). Not routers: they only pick the approved `e1l2` line (Section 6).
+
 **Several posts from one business (2026-11-17):** signals 3 and 4 are read from the business's **newest** post (latest `posted_date`). Older posts only count towards the open-roles check.
 
 **Review and override (2026-11-17):** a `unclear` segment or a CAC miss goes to a review view. A reviewer can bring the row back with two manual columns: `segment_override` (only `s1_retail`, `s2_food` or `s3_salon`; replaces the AI segment) and `cac_override` (checkbox; ticked when CAC registration is confirmed by hand). Rows a reviewer leaves untouched are never sent.
@@ -146,8 +148,9 @@ Approved 2026-11-13. Updated 2026-11-17 (Clay-readiness fixes) and 2026-11-25 (F
 | `cac_override` | Internal, not in copy. Manual review checkbox (Section 4) | Reviewed rows only |
 | `bc_checked` | Internal, not in copy. Manual checkbox: ticked when a reviewer found no match among Workflow C contacts (Section 7). Required before sending when `company_domain` is empty. Added 2026-11-25 | No-domain rows |
 | `instagram_dms` | Internal, not in copy. Boolean formula on the job description (Section 4). Added 2026-11-25 | All |
+| `dm_words`, `whatsapp_words` | Internal, not in copy. Boolean formulas on the job description (Section 4). Added 2026-11-25 | All |
 | `{{e1l1}}` | Email 1 line 1, by segment (formula, verbatim) | All |
-| `{{e1l2}}` | Email 1 line 2, by role channel (formula, verbatim) | All |
+| `{{e1l2}}` | Email 1 line 2, by role channel (formula, verbatim). `chat` line only when `dm_words` and `whatsapp_words` are true; `both` line only when `dm_words` is true; else the `not_stated` line | All |
 | `{{e2l1}}` | Email 2 line 1, by segment (formula, verbatim) | All |
 | `{{e3l1}}` | Email 3 line 1, by role channel (formula, verbatim). `chat` rows use the `chat` line only when `instagram_dms` is true, else the `not_stated` line | All |
 
@@ -197,7 +200,7 @@ Ello
 | `s2_food` | You're looking for a new {{role_title}}, so I'd guess orders are picking up. |
 | `s3_salon` | With a new {{role_title}} on the way, more clients are probably asking to book. |
 
-**`{{e1l2}}`: by role channel (exhaustive, no fallback)**
+**`{{e1l2}}`: by role channel (exhaustive)**. Rule added 2026-11-25: the `chat` line needs `dm_words` and `whatsapp_words`, the `both` line needs `dm_words`; otherwise the `not_stated` line. Wording unchanged.
 | Channel | Line |
 |---|---|
 | `chat` | The post says the job is mostly DMs and WhatsApp, and I imagine those keep coming after the shift ends. |
@@ -261,7 +264,7 @@ Ello
 Facts used: "Most businesses are set up in one sitting.", "No. Ello runs in the browser" (no new phone or SIM), "without your personal phone number ever being exposed", where the link goes; final-email CTA per the ladder. ~52 words.
 
 ### Sample: S3 x chat, fully assembled (as a prospect receives it)
-Illustrative lead: owner "Ada", business "Glow Studio", role "receptionist"; the post names Instagram DMs.
+Illustrative lead: owner "Ada", business "Glow Studio", role "receptionist"; the post names Instagram DMs and WhatsApp.
 
 **Email 1** · Subject: `your new hire`
 > Ada,

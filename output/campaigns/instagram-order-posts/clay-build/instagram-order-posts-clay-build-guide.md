@@ -2,6 +2,8 @@
 
 A step-by-step guide to building `output/campaigns/instagram-order-posts/workflow-spec.md` (Workflow C) in Clay. Written for someone who has never built anything in Clay. Follow the parts in order. Each step tells you **why** it exists, **what to click**, **what to type**, **how to check it worked** and **what it costs**.
 
+> **Updated 2026-11-25:** HubSpot is also checked on `domain`, the only key shared with Workflow B, plus a manual B/C check when there is no domain.
+>
 > **Updated 2026-11-20** to add the `Exclusions` table (Part 2.3), and to match the spec's pre-build fixes: HubSpot suppression rule and `ello_last_outreach_date`, Lagos regex, competitor handles, posts found on two hashtags, CAC test, coverage rule. See [Things the spec needs to fix](#things-the-spec-needs-to-fix).
 
 > **Don't skip the checks.** The most common Clay mistake is running a column on every row before checking it worked on 1. Every step below ends with a check. If the check fails, fix it before moving on.
@@ -47,7 +49,7 @@ Why this shape:
 - **Signal first**, because the trigger is a dated event: an Instagram post. One row per post comes in, and the cheap checks (keywords, date, Lagos) run there.
 - **Seller checks happen once per seller.** A busy seller may post three times in two weeks. You pay once to read and check them, and they get one sequence or one DM, not three (spec Section 7).
 - **Everything paid runs last**, and only on rows that passed every free check before it.
-- **Matching uses the Instagram handle, not a website domain.** Clay normally matches on domain, but most of these sellers have no website. The spec (Section 6) keys every seller on their handle, and checks HubSpot on the handle and the Maps place ID, which Workflow B also writes.
+- **Matching uses the Instagram handle, not a website domain.** Clay normally matches on domain, but most of these sellers have no website. The spec (Section 6) keys every seller on their handle, and checks HubSpot on the handle, the Maps place ID and the domain. Only the domain is also written by Workflow B.
 
 What a finished row in **Sellers** looks like, reading left to right (made-up example):
 
@@ -85,7 +87,7 @@ What a finished row in **Sellers** looks like, reading left to right (made-up ex
 Tick these off **before** the session. None of them should be done live.
 
 - [ ] **Clay account** with access to the workspace you'll build in. Note the plan (Settings → Plans & billing) and how many Actions are left. See [What it costs](#what-it-costs).
-- [ ] **HubSpot connected to Clay** (Settings → Connections → HubSpot). In HubSpot, make sure these company properties exist. They're shared with Workflow B (hiring a customer service rep); if Workflow B's build created them already, don't create them twice.
+- [ ] **HubSpot connected to Clay** (Settings → Connections → HubSpot). In HubSpot, make sure these company properties exist. `ello_last_outreach_date` and HubSpot's built-in `domain` (don't create it) are shared with Workflow B (hiring a customer service rep); if Workflow B's build created them already, don't create them twice.
   - `instagram_handle` (single-line text)
   - `maps_place_id` (single-line text)
   - `ello_last_outreach_date` (**date picker**). Both workflows write it on every contact. It drives the 90-day rule, because a logged HubSpot note doesn't update "last contacted".
@@ -202,6 +204,7 @@ Then, back in `Posts`, two free formulas that turn the post's links into the sam
 |---|---|---|
 | `Bio Link Domain` | The Bio Link without https://, www. or anything after the first /, in lowercase; blank if there's no link | `({{Bio Link}} \|\| "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[\/?#]/)[0]` |
 | `Maps Domain` | The same for Maps Website | `({{Maps Website}} \|\| "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[\/?#]/)[0]` |
+| `Company Domain` | Maps Domain if it's the business's own site, otherwise Bio Link Domain if it is, otherwise blank. Shared hosts (link pages, social networks, WhatsApp and Fresha booking pages) don't count | `[{{Maps Domain}}, {{Bio Link Domain}}].find(d => !!d && !/(^\|\.)(linktr\.ee\|beacons\.ai\|bio\.link\|bit\.ly\|wa\.me\|wa\.link\|whatsapp\.com\|instagram\.com\|facebook\.com\|fb\.com\|tiktok\.com\|x\.com\|twitter\.com\|youtube\.com\|t\.me\|google\.com\|goo\.gl\|fresha\.com)$/i.test(d)) \|\| ""` |
 
 Then three lookups (free). For each: **+ Add column** → **Lookup single row in other table** (may be called "Lookup row") → table `Exclusions` → match the column below → add the run condition.
 
@@ -260,7 +263,7 @@ Now the two checks:
 ### 3.1 Create the empty table
 
 1. **+ Add table** → **Blank table**. Name it `Sellers`.
-2. Add these columns: `Handle`, `Business Name`, `Hashtag Set`, `Caption`, `Post URL` (URL), `Post Date`, `Bio`, `Followers` (Number), `Is Business`, `IG Category`, `Profile Email` (Email), `Bio Link` (URL), `Maps Place ID`, `Maps Category`, `Maps Website` (URL), `Where Orders Go`, `Personal Number?`.
+2. Add these columns: `Handle`, `Business Name`, `Hashtag Set`, `Caption`, `Post URL` (URL), `Post Date`, `Bio`, `Followers` (Number), `Is Business`, `IG Category`, `Profile Email` (Email), `Bio Link` (URL), `Maps Place ID`, `Maps Category`, `Maps Website` (URL), `Where Orders Go`, `Personal Number?`, `Company Domain`.
 3. Table settings → **Deduplicate** → choose `Handle`.
 4. Turn **Auto-run off** here too.
 
@@ -294,21 +297,22 @@ Back in `Posts`:
 
 ### 4.2 HubSpot lookups (shared with Workflow B)
 
-**Why two lookups:** the spec (Sections 2 and 6) checks the shared HubSpot properties in order: the handle first, then the Maps place ID. Workflow B writes both, so a business contacted by either campaign is skipped here.
+**Why three lookups:** the spec (Sections 2 and 6) checks HubSpot in order: handle, Maps place ID, domain. Workflow B writes only the domain, so that lookup is what skips a business it already contacted.
 
 | Column | HubSpot property to match | Value | Run condition |
 |---|---|---|---|
 | `HubSpot by Handle` | `instagram_handle` | `{{Handle}}` | `{{Followers OK?}} === true` |
 | `HubSpot by Place ID` | `maps_place_id` | `{{Maps Place ID}}` | `{{Followers OK?}} === true && !!{{Maps Place ID}} && !{{HubSpot by Handle}}` |
+| `HubSpot by Domain` | `domain` | `{{Company Domain}}` | `{{Followers OK?}} === true && !!{{Company Domain}} && !{{HubSpot by Handle}} && !{{HubSpot by Place ID}}` |
 
 For each: **+ Add column** → search **HubSpot** → **Lookup company** (may be called "Find object" or "Lookup object"; choose the Company object) → set the property and value → add the run condition.
 
 In each lookup, ask for these properties back: `lifecyclestage`, `hs_num_open_deals`, `ello_last_outreach_date` (or the real internal names you confirmed in Before you start).
 
 1. Run each on **1 row** first. An empty cell means HubSpot has no such company, which is expected for most rows.
-2. Formula `In HubSpot?`. Plain English: *"True if either HubSpot lookup found a company whose lifecycle stage is customer, OR whose number of open deals is above 0, OR whose ello_last_outreach_date is within the last 90 days."* This is the spec's suppression rule (Section 2). A starting formula:
+2. Formula `In HubSpot?`. Plain English: *"True if any of the three HubSpot lookups found a company whose lifecycle stage is customer, OR whose number of open deals is above 0, OR whose ello_last_outreach_date is within the last 90 days."* This is the spec's suppression rule (Section 2). A starting formula:
 ```javascript
-[{{HubSpot by Handle}}, {{HubSpot by Place ID}}].some(c => !!c && (
+[{{HubSpot by Handle}}, {{HubSpot by Place ID}}, {{HubSpot by Domain}}].some(c => !!c && (
   c.lifecyclestage === "customer" ||
   Number(c.hs_num_open_deals || 0) > 0 ||
   (!!c.ello_last_outreach_date && (Date.now() - new Date(c.ello_last_outreach_date).getTime()) / 86400000 <= 90)
@@ -664,12 +668,15 @@ Pick one `email` row and one `dm` row in different cells. Paste the email row's 
 
 ## Part 9. Views for the operator
 
+First add a Checkbox column `BC Checked`. Before contacting a seller with no `Company Domain`, check its name by hand against the businesses Workflow B has contacted, then tick it. Leave it unticked on a match (spec Section 7).
+
 In `Sellers`, create these views (view dropdown → **+ New view** → add filters):
 
 | View | Filter | Who uses it |
 |---|---|---|
-| `Ready to email` | `Branch` = email | The person loading the sequencer |
-| `DM queue` | `Branch` = dm AND `DM Sent` is not ticked | The person sending DMs by hand. Show: Handle, Post URL, DM Text, DM Sent, DM Sent Date |
+| `Ready to email` | `Branch` = email AND (`Company Domain` is not empty OR `BC Checked` is ticked) | The person loading the sequencer |
+| `DM queue` | `Branch` = dm AND `DM Sent` is not ticked AND (`Company Domain` is not empty OR `BC Checked` is ticked) | The person sending DMs by hand. Show: Handle, Post URL, DM Text, DM Sent, DM Sent Date |
+| `Review: B/C cross-check` | `Branch` = email or dm, AND `Company Domain` is empty AND `BC Checked` is not ticked | A reviewer checks the name against Workflow B contacts |
 | `Review: type or seller` | `Pass Seller Gates?` = true AND (`Segment` = unclear OR `Seller OK?` = false) | A reviewer fills `Segment Override` or leaves it out |
 | `Review: CAC` | `In Segment?` = true AND `Seller OK?` = true AND `CAC OK?` = false | A reviewer checks CAC by hand and ticks `CAC Override` |
 | `Dropped` | `Pass Seller Gates?` = false OR `Segment` is s3_salon, clinic or other | Spot-checking the gates (blank followers show up here) |
@@ -741,7 +748,7 @@ Ello
 ```
 
 4. In `Sellers`: **+ Add column** → the sequencer's "Add lead to campaign" action. Map: email `{{Email}}`, first name `{{First Name}}`, `business_name` → `{{Business Name}}`, `e1l1` → `E1 L1`, `e1l2` → `E1 L2`, `e2l1` → `E2 L1`, `e3l1` → `E3 L1`.
-5. **Run condition:** `{{Branch}} === "email"`
+5. **Run condition:** `{{Branch}} === "email" && (!!{{Company Domain}} || {{BC Checked}} === true)`
 6. **Stop.** On launch day, run it on 1 row, check the lead in the paused campaign, then the rest.
 
 **Cost:** about **1 Action per lead pushed**.
@@ -753,10 +760,10 @@ Ello
 
 ### 10.3 Log every contact in HubSpot
 
-**Why:** the 90-day rule only works if every email and every DM is in HubSpot with both shared keys and the outreach date (spec Sections 6 and 7).
+**Why:** the 90-day rule only works if every email and every DM is in HubSpot with its keys and the outreach date (spec Sections 6 and 7).
 
 1. Formula `Outreach Date`. Plain English: *"DM Sent Date if DM Sent is ticked; otherwise today's date as YYYY-MM-DD."* Formula: `{{DM Sent}} === true ? {{DM Sent Date}} : new Date().toISOString().slice(0, 10)`
-2. **+ Add column** → search **HubSpot** → **Create or update company** (may be called "Upsert object"). Map `instagram_handle` → `{{Handle}}`, `maps_place_id` → `{{Maps Place ID}}`, company name → `{{Business Name}}`, `ello_last_outreach_date` → `{{Outreach Date}}`. **This date is what suppression reads**, so it must be mapped.
+2. **+ Add column** → search **HubSpot** → **Create or update company** (may be called "Upsert object"). Map `instagram_handle` → `{{Handle}}`, `maps_place_id` → `{{Maps Place ID}}`, `domain` → `{{Company Domain}}`, company name → `{{Business Name}}`, `ello_last_outreach_date` → `{{Outreach Date}}`. **This date is what suppression reads**, so it must be mapped. If a Part 4.2 lookup found a company, update that record by its HubSpot ID; create one only when none did. Ignore blank values.
 3. Optional: add a note saying which branch (the action may be called "Create engagement" or "Create note"). A note alone doesn't update "last contacted", which is why step 2 writes the date.
 4. **Run condition:** `({{Branch}} === "email" && !!{{Add lead to campaign}}) || ({{DM Sent}} === true && !!{{DM Sent Date}})` (rename the first part to whatever your sequencer push column is called).
 5. On launch day, run on 1 row, find the company in HubSpot and check `ello_last_outreach_date` is filled before running the rest.
@@ -773,7 +780,7 @@ Paid, and only on rows that passed every check before it:
 
 | Step | Runs on | Rough cost |
 |---|---|---|
-| HubSpot lookups (4.2) | Sellers under 50k followers; the place ID lookup only when the handle found nothing | Depends on your plan: check on 1 row |
+| HubSpot lookups (4.2) | Sellers under 50k followers; the later lookups only when the earlier ones found nothing | Depends on your plan: check on 1 row |
 | Seller Read (AI) (5.1) | Sellers that passed the gates | 1 Action + a small AI cost per seller |
 | CAC Check, Claygent (5.3) | Gate-passing retail and food sellers | More per seller than Use AI (browses) |
 | Website Email, Claygent (7.2) | Ready sellers with no profile email and a usable site | More per seller than Use AI (browses) |
@@ -783,7 +790,7 @@ Paid, and only on rows that passed every check before it:
 
 Outside Clay, Stage 1 uses treg (prices from spec Section 3, checked 2026-11-12): $0.002 per hashtag call, $0.001 per profile, $0.00023 per Maps search. For 2 hashtag calls and 25 accounts, that's about $0.04 in total, more if the hashtag call needs paging.
 
-**Example for the 25-post test** (made-up numbers, to show the shape): say 18 posts pass Part 2, from 15 sellers. 13 pass the seller gates, and 10 of those are real retail or food sellers. 7 are found on CAC. Say 3 have a profile email and Claygent finds 1 more from 2 websites. That's about 13 (Seller Read) + 10 (CAC Claygent) + 2 (Website Claygent) + 4 (validation) ≈ **29 Actions** plus AI cost, plus up to 26 more if your plan charges for HubSpot lookups. In this example, 4 sellers would get emails and 3 would be DMs.
+**Example for the 25-post test** (made-up numbers, to show the shape): say 18 posts pass Part 2, from 15 sellers. 13 pass the seller gates, and 10 of those are real retail or food sellers. 7 are found on CAC. Say 3 have a profile email and Claygent finds 1 more from 2 websites. That's about 13 (Seller Read) + 10 (CAC Claygent) + 2 (Website Claygent) + 4 (validation) ≈ **29 Actions** plus AI cost, plus up to 39 more if your plan charges for HubSpot lookups. In this example, 4 sellers would get emails and 3 would be DMs.
 
 Watch the Actions counter before and after each paid step, and write the numbers down.
 
@@ -792,6 +799,7 @@ Watch the Actions counter before and after each paid step, and write the numbers
 ## Final checklist
 
 - [ ] HubSpot has `instagram_handle`, `maps_place_id` and `ello_last_outreach_date`, and the lifecycle stage and open-deals internal names are confirmed.
+- [ ] Every seller contacted with no `Company Domain` has `BC Checked` ticked; no shared host (such as linktr.ee) appears in `Company Domain`.
 - [ ] `In HubSpot?` passed the four test-company cases (customer, open deal, contacted last week, 100 days ago).
 - [ ] The CAC Claygent returned `found` for the 5 known registered businesses, or the CAC check is done by hand.
 - [ ] Auto-run is **off** on both tables.
