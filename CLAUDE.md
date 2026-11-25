@@ -52,7 +52,7 @@ Imported from bolaji-ships/gtm-starter-kit (0e6d90b), in `.claude/skills/`. Run 
 ## Tools
 - Treg: paid data lookups and generative models (enrichment, SERP, social, scraping). Check the price before every call.
 - Miro: GTM system diagrams and flow charts (used by `/miro-gtm-flowchart`).
-- Notion: publish finished docs for the team. This repo stays the source of truth. Mirror of `context/` and `output/` (no raw research): [Ello GTM OS](https://app.notion.com/p/41762bcf06ca813cac60ce83bbfc14bc) (private draft, published 2026-11-13; Workflow B and C specs, Clay build guides and exclusions.csv updated 2026-11-20).
+- Notion: publish finished docs for the team. This repo stays the source of truth. Mirror of `context/` and `output/` (no raw research): [Ello GTM OS](https://app.notion.com/p/41762bcf06ca813cac60ce83bbfc14bc) (private draft, published 2026-11-13; Workflow B and C specs, Clay build guides and exclusions.csv updated 2026-11-20; current B and C specs and guides attached to their pages 2026-11-25).
 - Clay: company and people sourcing, enrichment and AI columns. Local helper: `tools/rex/`.
 - HubSpot: CRM of record for accounts, contacts, deals and outbound activity.
 - n8n: automation glue between signals, Clay, sequencer and HubSpot.
